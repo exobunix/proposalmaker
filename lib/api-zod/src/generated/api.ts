@@ -14,3 +14,215 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * @summary List all proposals
+ */
+export const ListProposalsResponseItem = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  projectName: zod.string(),
+  projectDate: zod.string(),
+  clientIndustry: zod.string(),
+  projectType: zod.string(),
+  budgetRange: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
+  signatureUrl: zod.string().nullish(),
+  status: zod.string(),
+  sections: zod.object({}).passthrough().nullish(),
+  enabledSections: zod.object({}).passthrough().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+export const ListProposalsResponse = zod.array(ListProposalsResponseItem);
+
+/**
+ * @summary Create a new proposal
+ */
+export const CreateProposalBody = zod.object({
+  clientName: zod.string(),
+  projectName: zod.string(),
+  projectDate: zod.string(),
+  clientIndustry: zod.string(),
+  projectType: zod.string(),
+  budgetRange: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
+  signatureUrl: zod.string().nullish(),
+});
+
+/**
+ * @summary Get a proposal by ID
+ */
+export const GetProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetProposalResponse = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  projectName: zod.string(),
+  projectDate: zod.string(),
+  clientIndustry: zod.string(),
+  projectType: zod.string(),
+  budgetRange: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
+  signatureUrl: zod.string().nullish(),
+  status: zod.string(),
+  sections: zod.object({}).passthrough().nullish(),
+  enabledSections: zod.object({}).passthrough().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Update a proposal
+ */
+export const UpdateProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateProposalBody = zod.object({
+  clientName: zod.string().optional(),
+  projectName: zod.string().optional(),
+  projectDate: zod.string().optional(),
+  clientIndustry: zod.string().optional(),
+  projectType: zod.string().optional(),
+  budgetRange: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
+  signatureUrl: zod.string().nullish(),
+  status: zod.string().optional(),
+  sections: zod.object({}).passthrough().nullish(),
+  enabledSections: zod.object({}).passthrough().nullish(),
+});
+
+export const UpdateProposalResponse = zod.object({
+  id: zod.number(),
+  clientName: zod.string(),
+  projectName: zod.string(),
+  projectDate: zod.string(),
+  clientIndustry: zod.string(),
+  projectType: zod.string(),
+  budgetRange: zod.string().nullish(),
+  logoUrl: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
+  signatureUrl: zod.string().nullish(),
+  status: zod.string(),
+  sections: zod.object({}).passthrough().nullish(),
+  enabledSections: zod.object({}).passthrough().nullish(),
+  createdAt: zod.string(),
+  updatedAt: zod.string(),
+});
+
+/**
+ * @summary Delete a proposal
+ */
+export const DeleteProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Duplicate a proposal
+ */
+export const DuplicateProposalParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+/**
+ * @summary Get proposal statistics
+ */
+export const GetProposalStatsResponse = zod.object({
+  total: zod.number(),
+  draft: zod.number(),
+  sent: zod.number(),
+  approved: zod.number(),
+  recentProposals: zod.array(
+    zod.object({
+      id: zod.number(),
+      clientName: zod.string(),
+      projectName: zod.string(),
+      projectDate: zod.string(),
+      clientIndustry: zod.string(),
+      projectType: zod.string(),
+      budgetRange: zod.string().nullish(),
+      logoUrl: zod.string().nullish(),
+      contactDetails: zod.string().nullish(),
+      signatureUrl: zod.string().nullish(),
+      status: zod.string(),
+      sections: zod.object({}).passthrough().nullish(),
+      enabledSections: zod.object({}).passthrough().nullish(),
+      createdAt: zod.string(),
+      updatedAt: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Generate AI content for a proposal section
+ */
+export const GenerateProposalContentBody = zod.object({
+  section: zod.string(),
+  projectType: zod.string(),
+  clientIndustry: zod.string(),
+  clientName: zod.string(),
+  projectName: zod.string(),
+  budgetRange: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
+});
+
+export const GenerateProposalContentResponse = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Generate all proposal content at once
+ */
+export const GenerateFullProposalBody = zod.object({
+  projectType: zod.string(),
+  clientIndustry: zod.string(),
+  clientName: zod.string(),
+  projectName: zod.string(),
+  budgetRange: zod.string().nullish(),
+});
+
+export const GenerateFullProposalResponse = zod.object({
+  executiveSummary: zod.string(),
+  aboutCompany: zod.string(),
+  projectOverview: zod.string(),
+  features: zod.string(),
+  technologyStack: zod.string(),
+  pricing: zod.string(),
+  digitalMarketing: zod.string(),
+  addOns: zod.string(),
+  legalTerms: zod.string(),
+  acceptanceSection: zod.string(),
+});
+
+/**
+ * @summary Rewrite content with a specific tone
+ */
+export const RewriteContentBody = zod.object({
+  content: zod.string(),
+  tone: zod.string(),
+  section: zod.string(),
+});
+
+export const RewriteContentResponse = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Upload a logo and get a base64 URL back
+ */
+export const UploadLogoBody = zod.object({
+  base64Data: zod.string(),
+  mimeType: zod.string(),
+  fileName: zod.string(),
+});
+
+export const UploadLogoResponse = zod.object({
+  url: zod.string(),
+});

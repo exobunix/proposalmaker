@@ -10,6 +10,10 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: proposals
+    description: Proposal management
+  - name: ai
+    description: AI content generation
 paths:
   /healthz:
     get:
@@ -24,6 +28,204 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /proposals:
+    get:
+      operationId: listProposals
+      tags: [proposals]
+      summary: List all proposals
+      responses:
+        "200":
+          description: List of proposals
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Proposal"
+    post:
+      operationId: createProposal
+      tags: [proposals]
+      summary: Create a new proposal
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProposalBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+
+  /proposals/{id}:
+    get:
+      operationId: getProposal
+      tags: [proposals]
+      summary: Get a proposal by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Proposal found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+        "404":
+          description: Not found
+    put:
+      operationId: updateProposal
+      tags: [proposals]
+      summary: Update a proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProposalBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+    delete:
+      operationId: deleteProposal
+      tags: [proposals]
+      summary: Delete a proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /proposals/{id}/duplicate:
+    post:
+      operationId: duplicateProposal
+      tags: [proposals]
+      summary: Duplicate a proposal
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "201":
+          description: Duplicated proposal
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Proposal"
+
+  /proposals/stats:
+    get:
+      operationId: getProposalStats
+      tags: [proposals]
+      summary: Get proposal statistics
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProposalStats"
+
+  /ai/generate-content:
+    post:
+      operationId: generateProposalContent
+      tags: [ai]
+      summary: Generate AI content for a proposal section
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateContentBody"
+      responses:
+        "200":
+          description: Generated content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedContent"
+
+  /ai/generate-full-proposal:
+    post:
+      operationId: generateFullProposal
+      tags: [ai]
+      summary: Generate all proposal content at once
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateFullProposalBody"
+      responses:
+        "200":
+          description: Full generated proposal content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullGeneratedContent"
+
+  /ai/rewrite:
+    post:
+      operationId: rewriteContent
+      tags: [ai]
+      summary: Rewrite content with a specific tone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RewriteContentBody"
+      responses:
+        "200":
+          description: Rewritten content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GeneratedContent"
+
+  /ai/upload-logo:
+    post:
+      operationId: uploadLogo
+      tags: [ai]
+      summary: Upload a logo and get a base64 URL back
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadLogoBody"
+      responses:
+        "200":
+          description: Logo URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UploadLogoResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +236,265 @@ components:
       required:
         - status
 
+    Proposal:
+      type: object
+      properties:
+        id:
+          type: integer
+        clientName:
+          type: string
+        projectName:
+          type: string
+        projectDate:
+          type: string
+        clientIndustry:
+          type: string
+        projectType:
+          type: string
+        budgetRange:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        contactDetails:
+          type: string
+          nullable: true
+        signatureUrl:
+          type: string
+          nullable: true
+        status:
+          type: string
+        sections:
+          type: object
+          nullable: true
+        enabledSections:
+          type: object
+          nullable: true
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - clientName
+        - projectName
+        - projectDate
+        - clientIndustry
+        - projectType
+        - status
+        - createdAt
+        - updatedAt
+
+    CreateProposalBody:
+      type: object
+      properties:
+        clientName:
+          type: string
+        projectName:
+          type: string
+        projectDate:
+          type: string
+        clientIndustry:
+          type: string
+        projectType:
+          type: string
+        budgetRange:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        contactDetails:
+          type: string
+          nullable: true
+        signatureUrl:
+          type: string
+          nullable: true
+      required:
+        - clientName
+        - projectName
+        - projectDate
+        - clientIndustry
+        - projectType
+
+    UpdateProposalBody:
+      type: object
+      properties:
+        clientName:
+          type: string
+        projectName:
+          type: string
+        projectDate:
+          type: string
+        clientIndustry:
+          type: string
+        projectType:
+          type: string
+        budgetRange:
+          type: string
+          nullable: true
+        logoUrl:
+          type: string
+          nullable: true
+        contactDetails:
+          type: string
+          nullable: true
+        signatureUrl:
+          type: string
+          nullable: true
+        status:
+          type: string
+        sections:
+          type: object
+          nullable: true
+        enabledSections:
+          type: object
+          nullable: true
+
+    ProposalStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        draft:
+          type: integer
+        sent:
+          type: integer
+        approved:
+          type: integer
+        recentProposals:
+          type: array
+          items:
+            $ref: "#/components/schemas/Proposal"
+      required:
+        - total
+        - draft
+        - sent
+        - approved
+        - recentProposals
+
+    GenerateContentBody:
+      type: object
+      properties:
+        section:
+          type: string
+        projectType:
+          type: string
+        clientIndustry:
+          type: string
+        clientName:
+          type: string
+        projectName:
+          type: string
+        budgetRange:
+          type: string
+          nullable: true
+        additionalContext:
+          type: string
+          nullable: true
+      required:
+        - section
+        - projectType
+        - clientIndustry
+        - clientName
+        - projectName
+
+    GenerateFullProposalBody:
+      type: object
+      properties:
+        projectType:
+          type: string
+        clientIndustry:
+          type: string
+        clientName:
+          type: string
+        projectName:
+          type: string
+        budgetRange:
+          type: string
+          nullable: true
+      required:
+        - projectType
+        - clientIndustry
+        - clientName
+        - projectName
+
+    RewriteContentBody:
+      type: object
+      properties:
+        content:
+          type: string
+        tone:
+          type: string
+        section:
+          type: string
+      required:
+        - content
+        - tone
+        - section
+
+    GeneratedContent:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content
+
+    FullGeneratedContent:
+      type: object
+      properties:
+        executiveSummary:
+          type: string
+        aboutCompany:
+          type: string
+        projectOverview:
+          type: string
+        features:
+          type: string
+        technologyStack:
+          type: string
+        pricing:
+          type: string
+        digitalMarketing:
+          type: string
+        addOns:
+          type: string
+        legalTerms:
+          type: string
+        acceptanceSection:
+          type: string
+      required:
+        - executiveSummary
+        - aboutCompany
+        - projectOverview
+        - features
+        - technologyStack
+        - pricing
+        - digitalMarketing
+        - addOns
+        - legalTerms
+        - acceptanceSection
+
+    UploadLogoBody:
+      type: object
+      properties:
+        base64Data:
+          type: string
+        mimeType:
+          type: string
+        fileName:
+          type: string
+      required:
+        - base64Data
+        - mimeType
+        - fileName
+
+    UploadLogoResponse:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+        - url

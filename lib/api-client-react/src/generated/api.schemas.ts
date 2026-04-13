@@ -8,3 +8,117 @@
 export interface HealthStatus {
   status: string;
 }
+
+export type ProposalSections = { [key: string]: unknown } | null;
+
+export type ProposalEnabledSections = { [key: string]: unknown } | null;
+
+export interface Proposal {
+  id: number;
+  clientName: string;
+  projectName: string;
+  projectDate: string;
+  clientIndustry: string;
+  projectType: string;
+  budgetRange?: string | null;
+  logoUrl?: string | null;
+  contactDetails?: string | null;
+  signatureUrl?: string | null;
+  status: string;
+  sections?: ProposalSections;
+  enabledSections?: ProposalEnabledSections;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateProposalBody {
+  clientName: string;
+  projectName: string;
+  projectDate: string;
+  clientIndustry: string;
+  projectType: string;
+  budgetRange?: string | null;
+  logoUrl?: string | null;
+  contactDetails?: string | null;
+  signatureUrl?: string | null;
+}
+
+export type UpdateProposalBodySections = { [key: string]: unknown } | null;
+
+export type UpdateProposalBodyEnabledSections = {
+  [key: string]: unknown;
+} | null;
+
+export interface UpdateProposalBody {
+  clientName?: string;
+  projectName?: string;
+  projectDate?: string;
+  clientIndustry?: string;
+  projectType?: string;
+  budgetRange?: string | null;
+  logoUrl?: string | null;
+  contactDetails?: string | null;
+  signatureUrl?: string | null;
+  status?: string;
+  sections?: UpdateProposalBodySections;
+  enabledSections?: UpdateProposalBodyEnabledSections;
+}
+
+export interface ProposalStats {
+  total: number;
+  draft: number;
+  sent: number;
+  approved: number;
+  recentProposals: Proposal[];
+}
+
+export interface GenerateContentBody {
+  section: string;
+  projectType: string;
+  clientIndustry: string;
+  clientName: string;
+  projectName: string;
+  budgetRange?: string | null;
+  additionalContext?: string | null;
+}
+
+export interface GenerateFullProposalBody {
+  projectType: string;
+  clientIndustry: string;
+  clientName: string;
+  projectName: string;
+  budgetRange?: string | null;
+}
+
+export interface RewriteContentBody {
+  content: string;
+  tone: string;
+  section: string;
+}
+
+export interface GeneratedContent {
+  content: string;
+}
+
+export interface FullGeneratedContent {
+  executiveSummary: string;
+  aboutCompany: string;
+  projectOverview: string;
+  features: string;
+  technologyStack: string;
+  pricing: string;
+  digitalMarketing: string;
+  addOns: string;
+  legalTerms: string;
+  acceptanceSection: string;
+}
+
+export interface UploadLogoBody {
+  base64Data: string;
+  mimeType: string;
+  fileName: string;
+}
+
+export interface UploadLogoResponse {
+  url: string;
+}

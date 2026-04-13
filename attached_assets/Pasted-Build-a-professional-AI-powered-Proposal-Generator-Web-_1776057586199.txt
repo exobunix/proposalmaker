@@ -1,0 +1,167 @@
+Build a professional AI-powered Proposal Generator Web App for my IT company.
+
+Project Goal:
+Create a reusable, premium, client-ready business proposal system where I only need to update:
+- Client Name
+- Project Date
+- Client Logo
+- Contact Details
+- Signature
+
+Everything else (content, structure, formatting, sections) should be automatically generated using AI.
+
+Reference:
+Follow the structure and content style of the uploaded proposal PDF (sections like Executive Summary, About Us, Project Details, Features, Pricing, Marketing, Legal, Acceptance, etc.)
+
+--------------------------------------------------
+
+🔷 CORE REQUIREMENTS:
+
+1. TECH STACK:
+- Frontend: React (or Next.js)
+- Backend: Node.js / Express OR Firebase
+- AI Integration: OpenAI API (for dynamic content generation)
+- PDF Generator: Use libraries like Puppeteer or React PDF
+- Storage: Firebase / Local JSON
+
+--------------------------------------------------
+
+🔷 UI/UX REQUIREMENTS:
+
+- Ultra premium corporate UI (like consulting firms)
+- Editable form panel (left side)
+- Live proposal preview (right side)
+- Drag & drop logo upload
+- Clean typography, spacing, icons
+- Export to PDF button
+
+--------------------------------------------------
+
+🔷 INPUT FORM (Editable Fields Only):
+
+- Client Name
+- Project Name
+- Project Date
+- Client Industry (dropdown)
+- Project Type (App / Website / SaaS / Marketplace etc.)
+- Budget Range (optional)
+- Logo Upload
+- Contact Details
+- Signature Upload
+
+--------------------------------------------------
+
+🔷 AI CONTENT GENERATION:
+
+Use AI to dynamically generate:
+
+1. Executive Summary
+- Based on project type + client industry
+
+2. About Company
+- Predefined + AI enhanced (premium tone)
+
+3. Project Overview
+- Automatically describe solution (like marketplace, app, etc.)
+
+4. Features Section
+- Auto-generate modules:
+  - User Panel
+  - Admin Panel
+  - Vendor Panel (if applicable)
+  - Driver Panel (if applicable)
+
+5. Technology Stack
+- Suggest based on project type
+
+6. Pricing Section
+- Dynamic (basic / standard / premium)
+- Editable if needed
+
+7. Digital Marketing Section
+- Auto suggest:
+  - Social media
+  - Ads
+  - SEO
+
+8. Add-ons:
+- SEO
+- UGC videos
+- Maintenance
+
+9. Legal Terms (Static but formatted nicely)
+- Use reusable template
+
+10. Acceptance Section
+- Auto-fill client name, date, signature
+
+--------------------------------------------------
+
+🔷 CUSTOMIZATION OPTIONS:
+
+- Toggle sections ON/OFF
+- Add/remove features dynamically
+- Edit pricing manually
+- Add custom pages
+
+--------------------------------------------------
+
+🔷 OUTPUT FORMAT:
+
+- Generate a visually rich proposal like:
+  - Cover Page
+  - Table of Contents
+  - Sections (like PDF reference)
+- Export as:
+  - PDF (High quality, print ready)
+  - Shareable link
+
+--------------------------------------------------
+
+🔷 DESIGN SYSTEM:
+
+- Use color theme:
+  Primary: Yellow/Gold + Black + White
+- Use icons for features
+- Cards for sections
+- Clean spacing like modern pitch decks
+
+--------------------------------------------------
+
+🔷 ADVANCED FEATURES:
+
+- Save templates
+- Duplicate proposal
+- Auto-fill company data
+- AI rewrite button for tone:
+  - Professional
+  - Premium
+  - Startup-friendly
+
+--------------------------------------------------
+
+🔷 FINAL GOAL:
+
+This tool should allow me to generate a complete client proposal in under 2 minutes by only changing:
+- Client Name
+- Date
+- Logo
+- Contact Details
+- Signature
+
+Everything else should be handled by AI and predefined smart templates.
+
+Make the output extremely professional, investor-level, and client-converting.
+
+--------------------------------------------------
+
+IMPORTANT:
+Content tone should match high-end IT consulting companies like:
+- Clean
+- Confident
+- Premium
+- Result-driven
+
+Avoid generic text. Make it persuasive and business-focused.
+
+--------------------------------------------------

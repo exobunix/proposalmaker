@@ -6,4 +6,19 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./createProposalBody";
+export * from "./fullGeneratedContent";
+export * from "./generateContentBody";
+export * from "./generatedContent";
+export * from "./generateFullProposalBody";
 export * from "./healthStatus";
+export * from "./proposal";
+export * from "./proposalEnabledSections";
+export * from "./proposalSections";
+export * from "./proposalStats";
+export * from "./rewriteContentBody";
+export * from "./updateProposalBody";
+export * from "./updateProposalBodyEnabledSections";
+export * from "./updateProposalBodySections";
+export * from "./uploadLogoBody";
+export * from "./uploadLogoResponse";

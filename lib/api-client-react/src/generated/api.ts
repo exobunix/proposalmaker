@@ -5,18 +5,34 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
+  MutationFunction,
   QueryFunction,
   QueryKey,
+  UseMutationOptions,
+  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  CreateProposalBody,
+  FullGeneratedContent,
+  GenerateContentBody,
+  GenerateFullProposalBody,
+  GeneratedContent,
+  HealthStatus,
+  Proposal,
+  ProposalStats,
+  RewriteContentBody,
+  UpdateProposalBody,
+  UploadLogoBody,
+  UploadLogoResponse,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
-import type { ErrorType } from "../custom-fetch";
+import type { ErrorType, BodyType } from "../custom-fetch";
 
 type AwaitedInput<T> = PromiseLike<T> | T;
 
@@ -99,3 +115,926 @@ export function useHealthCheck<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary List all proposals
+ */
+export const getListProposalsUrl = () => {
+  return `/api/proposals`;
+};
+
+export const listProposals = async (
+  options?: RequestInit,
+): Promise<Proposal[]> => {
+  return customFetch<Proposal[]>(getListProposalsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListProposalsQueryKey = () => {
+  return [`/api/proposals`] as const;
+};
+
+export const getListProposalsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listProposals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListProposalsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listProposals>>> = ({
+    signal,
+  }) => listProposals({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListProposalsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listProposals>>
+>;
+export type ListProposalsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all proposals
+ */
+
+export function useListProposals<
+  TData = Awaited<ReturnType<typeof listProposals>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listProposals>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListProposalsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a new proposal
+ */
+export const getCreateProposalUrl = () => {
+  return `/api/proposals`;
+};
+
+export const createProposal = async (
+  createProposalBody: CreateProposalBody,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getCreateProposalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createProposalBody),
+  });
+};
+
+export const getCreateProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProposal>>,
+    TError,
+    { data: BodyType<CreateProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createProposal>>,
+  TError,
+  { data: BodyType<CreateProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["createProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createProposal>>,
+    { data: BodyType<CreateProposalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createProposal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createProposal>>
+>;
+export type CreateProposalMutationBody = BodyType<CreateProposalBody>;
+export type CreateProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a new proposal
+ */
+export const useCreateProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createProposal>>,
+    TError,
+    { data: BodyType<CreateProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createProposal>>,
+  TError,
+  { data: BodyType<CreateProposalBody> },
+  TContext
+> => {
+  return useMutation(getCreateProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get a proposal by ID
+ */
+export const getGetProposalUrl = (id: number) => {
+  return `/api/proposals/${id}`;
+};
+
+export const getProposal = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getGetProposalUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProposalQueryKey = (id: number) => {
+  return [`/api/proposals/${id}`] as const;
+};
+
+export const getGetProposalQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProposalQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getProposal>>> = ({
+    signal,
+  }) => getProposal(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProposal>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProposalQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProposal>>
+>;
+export type GetProposalQueryError = ErrorType<void>;
+
+/**
+ * @summary Get a proposal by ID
+ */
+
+export function useGetProposal<
+  TData = Awaited<ReturnType<typeof getProposal>>,
+  TError = ErrorType<void>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getProposal>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProposalQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update a proposal
+ */
+export const getUpdateProposalUrl = (id: number) => {
+  return `/api/proposals/${id}`;
+};
+
+export const updateProposal = async (
+  id: number,
+  updateProposalBody: UpdateProposalBody,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getUpdateProposalUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateProposalBody),
+  });
+};
+
+export const getUpdateProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProposal>>,
+    TError,
+    { id: number; data: BodyType<UpdateProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateProposal>>,
+  TError,
+  { id: number; data: BodyType<UpdateProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["updateProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateProposal>>,
+    { id: number; data: BodyType<UpdateProposalBody> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateProposal(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateProposal>>
+>;
+export type UpdateProposalMutationBody = BodyType<UpdateProposalBody>;
+export type UpdateProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a proposal
+ */
+export const useUpdateProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateProposal>>,
+    TError,
+    { id: number; data: BodyType<UpdateProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateProposal>>,
+  TError,
+  { id: number; data: BodyType<UpdateProposalBody> },
+  TContext
+> => {
+  return useMutation(getUpdateProposalMutationOptions(options));
+};
+
+/**
+ * @summary Delete a proposal
+ */
+export const getDeleteProposalUrl = (id: number) => {
+  return `/api/proposals/${id}`;
+};
+
+export const deleteProposal = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteProposalUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteProposal>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteProposal(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteProposal>>
+>;
+
+export type DeleteProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a proposal
+ */
+export const useDeleteProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteProposalMutationOptions(options));
+};
+
+/**
+ * @summary Duplicate a proposal
+ */
+export const getDuplicateProposalUrl = (id: number) => {
+  return `/api/proposals/${id}/duplicate`;
+};
+
+export const duplicateProposal = async (
+  id: number,
+  options?: RequestInit,
+): Promise<Proposal> => {
+  return customFetch<Proposal>(getDuplicateProposalUrl(id), {
+    ...options,
+    method: "POST",
+  });
+};
+
+export const getDuplicateProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof duplicateProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["duplicateProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof duplicateProposal>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return duplicateProposal(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DuplicateProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof duplicateProposal>>
+>;
+
+export type DuplicateProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Duplicate a proposal
+ */
+export const useDuplicateProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof duplicateProposal>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof duplicateProposal>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDuplicateProposalMutationOptions(options));
+};
+
+/**
+ * @summary Get proposal statistics
+ */
+export const getGetProposalStatsUrl = () => {
+  return `/api/proposals/stats`;
+};
+
+export const getProposalStats = async (
+  options?: RequestInit,
+): Promise<ProposalStats> => {
+  return customFetch<ProposalStats>(getGetProposalStatsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetProposalStatsQueryKey = () => {
+  return [`/api/proposals/stats`] as const;
+};
+
+export const getGetProposalStatsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getProposalStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetProposalStatsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getProposalStats>>
+  > = ({ signal }) => getProposalStats({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalStats>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetProposalStatsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getProposalStats>>
+>;
+export type GetProposalStatsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get proposal statistics
+ */
+
+export function useGetProposalStats<
+  TData = Awaited<ReturnType<typeof getProposalStats>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getProposalStats>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetProposalStatsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Generate AI content for a proposal section
+ */
+export const getGenerateProposalContentUrl = () => {
+  return `/api/ai/generate-content`;
+};
+
+export const generateProposalContent = async (
+  generateContentBody: GenerateContentBody,
+  options?: RequestInit,
+): Promise<GeneratedContent> => {
+  return customFetch<GeneratedContent>(getGenerateProposalContentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateContentBody),
+  });
+};
+
+export const getGenerateProposalContentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateProposalContent>>,
+    TError,
+    { data: BodyType<GenerateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateProposalContent>>,
+  TError,
+  { data: BodyType<GenerateContentBody> },
+  TContext
+> => {
+  const mutationKey = ["generateProposalContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateProposalContent>>,
+    { data: BodyType<GenerateContentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateProposalContent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateProposalContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateProposalContent>>
+>;
+export type GenerateProposalContentMutationBody = BodyType<GenerateContentBody>;
+export type GenerateProposalContentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate AI content for a proposal section
+ */
+export const useGenerateProposalContent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateProposalContent>>,
+    TError,
+    { data: BodyType<GenerateContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateProposalContent>>,
+  TError,
+  { data: BodyType<GenerateContentBody> },
+  TContext
+> => {
+  return useMutation(getGenerateProposalContentMutationOptions(options));
+};
+
+/**
+ * @summary Generate all proposal content at once
+ */
+export const getGenerateFullProposalUrl = () => {
+  return `/api/ai/generate-full-proposal`;
+};
+
+export const generateFullProposal = async (
+  generateFullProposalBody: GenerateFullProposalBody,
+  options?: RequestInit,
+): Promise<FullGeneratedContent> => {
+  return customFetch<FullGeneratedContent>(getGenerateFullProposalUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(generateFullProposalBody),
+  });
+};
+
+export const getGenerateFullProposalMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateFullProposal>>,
+    TError,
+    { data: BodyType<GenerateFullProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof generateFullProposal>>,
+  TError,
+  { data: BodyType<GenerateFullProposalBody> },
+  TContext
+> => {
+  const mutationKey = ["generateFullProposal"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof generateFullProposal>>,
+    { data: BodyType<GenerateFullProposalBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return generateFullProposal(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type GenerateFullProposalMutationResult = NonNullable<
+  Awaited<ReturnType<typeof generateFullProposal>>
+>;
+export type GenerateFullProposalMutationBody =
+  BodyType<GenerateFullProposalBody>;
+export type GenerateFullProposalMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Generate all proposal content at once
+ */
+export const useGenerateFullProposal = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof generateFullProposal>>,
+    TError,
+    { data: BodyType<GenerateFullProposalBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof generateFullProposal>>,
+  TError,
+  { data: BodyType<GenerateFullProposalBody> },
+  TContext
+> => {
+  return useMutation(getGenerateFullProposalMutationOptions(options));
+};
+
+/**
+ * @summary Rewrite content with a specific tone
+ */
+export const getRewriteContentUrl = () => {
+  return `/api/ai/rewrite`;
+};
+
+export const rewriteContent = async (
+  rewriteContentBody: RewriteContentBody,
+  options?: RequestInit,
+): Promise<GeneratedContent> => {
+  return customFetch<GeneratedContent>(getRewriteContentUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(rewriteContentBody),
+  });
+};
+
+export const getRewriteContentMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rewriteContent>>,
+    TError,
+    { data: BodyType<RewriteContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof rewriteContent>>,
+  TError,
+  { data: BodyType<RewriteContentBody> },
+  TContext
+> => {
+  const mutationKey = ["rewriteContent"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof rewriteContent>>,
+    { data: BodyType<RewriteContentBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return rewriteContent(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type RewriteContentMutationResult = NonNullable<
+  Awaited<ReturnType<typeof rewriteContent>>
+>;
+export type RewriteContentMutationBody = BodyType<RewriteContentBody>;
+export type RewriteContentMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Rewrite content with a specific tone
+ */
+export const useRewriteContent = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof rewriteContent>>,
+    TError,
+    { data: BodyType<RewriteContentBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof rewriteContent>>,
+  TError,
+  { data: BodyType<RewriteContentBody> },
+  TContext
+> => {
+  return useMutation(getRewriteContentMutationOptions(options));
+};
+
+/**
+ * @summary Upload a logo and get a base64 URL back
+ */
+export const getUploadLogoUrl = () => {
+  return `/api/ai/upload-logo`;
+};
+
+export const uploadLogo = async (
+  uploadLogoBody: UploadLogoBody,
+  options?: RequestInit,
+): Promise<UploadLogoResponse> => {
+  return customFetch<UploadLogoResponse>(getUploadLogoUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(uploadLogoBody),
+  });
+};
+
+export const getUploadLogoMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadLogo>>,
+    TError,
+    { data: BodyType<UploadLogoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof uploadLogo>>,
+  TError,
+  { data: BodyType<UploadLogoBody> },
+  TContext
+> => {
+  const mutationKey = ["uploadLogo"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof uploadLogo>>,
+    { data: BodyType<UploadLogoBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return uploadLogo(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UploadLogoMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadLogo>>
+>;
+export type UploadLogoMutationBody = BodyType<UploadLogoBody>;
+export type UploadLogoMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Upload a logo and get a base64 URL back
+ */
+export const useUploadLogo = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof uploadLogo>>,
+    TError,
+    { data: BodyType<UploadLogoBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof uploadLogo>>,
+  TError,
+  { data: BodyType<UploadLogoBody> },
+  TContext
+> => {
+  return useMutation(getUploadLogoMutationOptions(options));
+};

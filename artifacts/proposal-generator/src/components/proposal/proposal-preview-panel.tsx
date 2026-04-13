@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Link } from "wouter";
+import { markdownToHtml } from "@/lib/markdown";
 
 interface ProposalPreviewPanelProps {
   proposal?: Proposal;
@@ -276,9 +277,10 @@ export function ProposalPreviewPanel({ proposal }: ProposalPreviewPanelProps) {
                         <div className="h-4 bg-muted rounded w-2/3 animate-pulse"></div>
                       </div>
                     ) : content ? (
-                      <div className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-serif prose-p:font-serif prose-p:leading-relaxed max-w-none">
-                        <div dangerouslySetContent={{ __html: content }} />
-                      </div>
+                      <div
+                        className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-serif prose-p:font-serif prose-p:leading-relaxed max-w-none"
+                        dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
+                      />
                     ) : (
                       <div className="text-center py-8 text-muted-foreground italic font-serif">
                         Section content empty. Click Generate to create.

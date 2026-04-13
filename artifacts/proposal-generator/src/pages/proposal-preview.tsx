@@ -1,8 +1,9 @@
 import { useParams, Link } from "wouter";
 import { useGetProposal, getGetProposalQueryKey } from "@workspace/api-client-react";
-import { Loader2, ArrowLeft, Printer, Download } from "lucide-react";
+import { Loader2, ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
+import { markdownToHtml } from "@/lib/markdown";
 
 export default function ProposalPreview() {
   const params = useParams();
@@ -123,9 +124,10 @@ export default function ProposalPreview() {
               <h2 className="text-3xl font-serif font-bold mb-10 text-foreground border-b border-border pb-6 inline-block">
                 {sectionTitles[key] || key}
               </h2>
-              <div className="prose prose-lg dark:prose-invert prose-headings:font-serif prose-p:font-serif prose-p:leading-relaxed prose-a:text-primary max-w-none">
-                <div dangerouslySetContent={{ __html: sections[key] }} />
-              </div>
+              <div
+                className="prose prose-lg dark:prose-invert prose-headings:font-serif prose-p:font-serif prose-p:leading-relaxed prose-a:text-primary max-w-none"
+                dangerouslySetInnerHTML={{ __html: markdownToHtml(sections[key]) }}
+              />
             </div>
           ))}
 

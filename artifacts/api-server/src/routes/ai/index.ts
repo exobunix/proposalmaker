@@ -102,73 +102,65 @@ router.post("/generate-full-proposal", async (req, res) => {
       sectionName: string,
       prompt: string
     ): Promise<string> => {
-      const response = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        max_completion_tokens: 2048,
-        messages: [
-          { role: "system", content: buildSystemPrompt() },
-          { role: "user", content: `${prompt}\n\nContext: ${context}` },
-        ],
-      });
-      return (
-        response.choices[0]?.message?.content ??
-        `${sectionName} content generation failed.`
-      );
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          max_completion_tokens: 2048,
+          messages: [
+            { role: "system", content: buildSystemPrompt() },
+            { role: "user", content: `${prompt}\n\nContext: ${context}` },
+          ],
+        });
+        return (
+          response.choices[0]?.message?.content ??
+          `${sectionName} content generation failed.`
+        );
+      } catch (sectionErr: any) {
+        req.log.error({ sectionErr, sectionName }, "Failed to generate section");
+        return `Failed to generate this section due to API rate limits or network issues. (Error: ${sectionErr.message || sectionErr}). Please try generating this section individually using the AI button.`;
+      }
     };
 
-    const [
-      executiveSummary,
-      aboutCompany,
-      projectOverview,
-      features,
-      technologyStack,
-      pricing,
-      digitalMarketing,
-      addOns,
-      legalTerms,
-      acceptanceSection,
-    ] = await Promise.all([
-      generateSection(
-        "Executive Summary",
-        `Write a compelling 3-paragraph Executive Summary for a ${projectType} for ${clientName} in ${clientIndustry}. Focus on business impact and ROI.`
-      ),
-      generateSection(
-        "About Company",
-        `Write a 2-paragraph "About Our Company" section showcasing our expertise in building ${projectType} solutions for ${clientIndustry} clients.`
-      ),
-      generateSection(
-        "Project Overview",
-        `Write a 3-paragraph Project Overview for ${projectName}, a ${projectType} that will transform ${clientName}'s business in the ${clientIndustry} space.`
-      ),
-      generateSection(
-        "Features",
-        `List the key features and modules for ${projectName} (${projectType}). Include User Panel, Admin Panel, and any other relevant panels. Use clear headers and bullet points.`
-      ),
-      generateSection(
-        "Technology Stack",
-        `Recommend the optimal technology stack for ${projectName} (${projectType}). Cover frontend, backend, database, cloud, and integrations. Explain each choice briefly.`
-      ),
-      generateSection(
-        "Pricing",
-        `Create a 3-tier pricing structure (Basic/Standard/Premium) for ${projectName}. ${budgetRange ? `Client budget: ${budgetRange}.` : ""} Include features and estimated timelines per tier.`
-      ),
-      generateSection(
-        "Digital Marketing",
-        `Write a Digital Marketing strategy for ${clientName}'s ${projectName}. Cover social media, paid ads, SEO, and content marketing. Be specific and actionable.`
-      ),
-      generateSection(
-        "Add-Ons",
-        `List premium add-on services for ${projectName}: SEO package, UGC videos, maintenance plans, and other value-adding services. Include brief descriptions.`
-      ),
-      generateSection(
-        "Legal Terms",
-        `Write concise legal terms for a software development agreement for ${projectName}. Cover IP rights, confidentiality, payment terms, warranties, and termination.`
-      ),
-      generateSection(
-        "Acceptance",
-        `Write an Acceptance section for ${clientName}'s ${projectName} proposal. Include signature blocks, next steps after signing, and a professional closing statement.`
-      ),
-    ]);
+    const executiveSummary = await generateSection(
+      "Executive Summary",
+      `Write a compelling 3-paragraph Executive Summary for a ${projectType} for ${clientName} in ${clientIndustry}. Focus on business impact and ROI.`
+    );
+    const aboutCompany = await generateSection(
+      "About Company",
+      `Write a 2-paragraph "About Our Company" section showcasing our expertise in building ${projectType} solutions for ${clientIndustry} clients.`
+    );
+    const projectOverview = await generateSection(
+      "Project Overview",
+      `Write a 3-paragraph Project Overview for ${projectName}, a ${projectType} that will transform ${clientName}'s business in the ${clientIndustry} space.`
+    );
+    const features = await generateSection(
+      "Features",
+      `List the key features and modules for ${projectName} (${projectType}). Include User Panel, Admin Panel, and any other relevant panels. Use clear headers and bullet points.`
+    );
+    const technologyStack = await generateSection(
+      "Technology Stack",
+      `Recommend the optimal technology stack for ${projectName} (${projectType}). Cover frontend, backend, database, cloud, and integrations. Explain each choice briefly.`
+    );
+    const pricing = await generateSection(
+      "Pricing",
+      `Create a 3-tier pricing structure (Basic/Standard/Premium) for ${projectName}. ${budgetRange ? `Client budget: ${budgetRange}.` : ""} Include features and estimated timelines per tier.`
+    );
+    const digitalMarketing = await generateSection(
+      "Digital Marketing",
+      `Write a Digital Marketing strategy for ${clientName}'s ${projectName}. Cover social media, paid ads, SEO, and content marketing. Be specific and actionable.`
+    );
+    const addOns = await generateSection(
+      "Add-Ons",
+      `List premium add-on services for ${projectName}: SEO package, UGC videos, maintenance plans, and other value-adding services. Include brief descriptions.`
+    );
+    const legalTerms = await generateSection(
+      "Legal Terms",
+      `Write concise legal terms for a software development agreement for ${projectName}. Cover IP rights, confidentiality, payment terms, warranties, and termination.`
+    );
+    const acceptanceSection = await generateSection(
+      "Acceptance",
+      `Write an Acceptance section for ${clientName}'s ${projectName} proposal. Include signature blocks, next steps after signing, and a professional closing statement.`
+    );
 
     res.json({
       executiveSummary,
@@ -182,9 +174,13 @@ router.post("/generate-full-proposal", async (req, res) => {
       legalTerms,
       acceptanceSection,
     });
-  } catch (err) {
+  } catch (err: any) {
     req.log.error({ err }, "Failed to generate full proposal");
-    res.status(500).json({ error: "AI content generation failed" });
+    res.status(500).json({
+      error: "AI content generation failed",
+      details: err?.message || String(err),
+      stack: err?.stack
+    });
   }
 });
 

@@ -7,7 +7,11 @@ import {
   UploadLogoBody,
 } from "@workspace/api-zod";
 
+import { requireAuth } from "../../middlewares/auth";
+
 const router = Router();
+
+router.use(requireAuth);
 
 const COMPANY_INFO = `
 Company Name: TechVision Solutions

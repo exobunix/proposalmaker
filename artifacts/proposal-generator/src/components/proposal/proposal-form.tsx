@@ -101,8 +101,11 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
         queryClient.invalidateQueries({ queryKey: getListProposalsQueryKey() });
         setLocation(`/proposals/${data.id}`);
       },
-      onError: () => {
-        toast({ title: "Failed to create proposal", variant: "destructive" });
+      onError: (err: any) => {
+        const errorMsg = err?.status === 403
+          ? "You have reached the limit of 3 free proposals. Please upgrade your subscription from the dashboard."
+          : "Failed to create proposal";
+        toast({ title: errorMsg, variant: "destructive" });
       }
     }
   });

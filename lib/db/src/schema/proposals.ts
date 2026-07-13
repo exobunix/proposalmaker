@@ -1,9 +1,11 @@
 import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { usersTable } from "./users";
 
 export const proposalsTable = sqliteTable("proposals", {
   id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => usersTable.id),
   clientName: text("client_name").notNull(),
   projectName: text("project_name").notNull(),
   projectDate: text("project_date").notNull(),

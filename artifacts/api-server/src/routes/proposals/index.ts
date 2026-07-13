@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, desc, count } from "drizzle-orm";
+import { eq, and, desc, count } from "drizzle-orm";
 import { db, proposalsTable } from "@workspace/db";
 import {
   CreateProposalBody,
@@ -9,14 +9,20 @@ import {
   DeleteProposalParams,
   DuplicateProposalParams,
 } from "@workspace/api-zod";
+import { requireAuth, type AuthenticatedRequest } from "../../middlewares/auth";
 
 const router = Router();
 
-router.get("/stats", async (req, res) => {
+// Protect all proposal routes
+router.use(requireAuth);
+
+router.get("/stats", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
   try {
     const allProposals = await db
       .select()
       .from(proposalsTable)
+      .where(eq(proposalsTable.userId, userId))
       .orderBy(desc(proposalsTable.createdAt));
 
     const total = allProposals.length;
@@ -32,11 +38,13 @@ router.get("/stats", async (req, res) => {
   }
 });
 
-router.get("/", async (req, res) => {
+router.get("/", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
   try {
     const proposals = await db
       .select()
       .from(proposalsTable)
+      .where(eq(proposalsTable.userId, userId))
       .orderBy(desc(proposalsTable.createdAt));
     res.json(proposals);
   } catch (err) {
@@ -45,13 +53,31 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
+  const subscription = req.user!.subscription;
+
   const parsed = CreateProposalBody.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
   try {
+    // Check 3-proposal limit for free users
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(proposalsTable)
+      .where(eq(proposalsTable.userId, userId));
+
+    const currentCount = countResult?.count || 0;
+
+    if (subscription === "free" && currentCount >= 3) {
+      return res.status(403).json({
+        error: "You have reached the limit of 3 free proposals. Please upgrade your subscription plan to generate more.",
+        limitExceeded: true,
+      });
+    }
+
     const defaultEnabledSections = {
       executiveSummary: true,
       aboutCompany: true,
@@ -69,6 +95,7 @@ router.post("/", async (req, res) => {
       .insert(proposalsTable)
       .values({
         ...parsed.data,
+        userId,
         status: "draft",
         enabledSections: defaultEnabledSections,
       })
@@ -81,7 +108,8 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
   const parsed = GetProposalParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid ID" });
@@ -91,7 +119,12 @@ router.get("/:id", async (req, res) => {
     const [proposal] = await db
       .select()
       .from(proposalsTable)
-      .where(eq(proposalsTable.id, parsed.data.id));
+      .where(
+        and(
+          eq(proposalsTable.id, parsed.data.id),
+          eq(proposalsTable.userId, userId)
+        )
+      );
 
     if (!proposal) {
       return res.status(404).json({ error: "Proposal not found" });
@@ -104,7 +137,8 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router.put("/:id", async (req, res) => {
+router.put("/:id", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
   const paramsParsed = UpdateProposalParams.safeParse({
     id: Number(req.params.id),
   });
@@ -124,7 +158,12 @@ router.put("/:id", async (req, res) => {
         ...bodyParsed.data,
         updatedAt: new Date(),
       })
-      .where(eq(proposalsTable.id, paramsParsed.data.id))
+      .where(
+        and(
+          eq(proposalsTable.id, paramsParsed.data.id),
+          eq(proposalsTable.userId, userId)
+        )
+      )
       .returning();
 
     if (!proposal) {
@@ -138,13 +177,28 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
   const parsed = DeleteProposalParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     return res.status(400).json({ error: "Invalid ID" });
   }
 
   try {
+    const [existing] = await db
+      .select()
+      .from(proposalsTable)
+      .where(
+        and(
+          eq(proposalsTable.id, parsed.data.id),
+          eq(proposalsTable.userId, userId)
+        )
+      );
+
+    if (!existing) {
+      return res.status(404).json({ error: "Proposal not found" });
+    }
+
     await db
       .delete(proposalsTable)
       .where(eq(proposalsTable.id, parsed.data.id));
@@ -156,7 +210,10 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
-router.post("/:id/duplicate", async (req, res) => {
+router.post("/:id/duplicate", async (req: AuthenticatedRequest, res) => {
+  const userId = req.user!.id;
+  const subscription = req.user!.subscription;
+
   const parsed = DuplicateProposalParams.safeParse({
     id: Number(req.params.id),
   });
@@ -165,10 +222,30 @@ router.post("/:id/duplicate", async (req, res) => {
   }
 
   try {
+    // Check 3-proposal limit for free users
+    const [countResult] = await db
+      .select({ count: count() })
+      .from(proposalsTable)
+      .where(eq(proposalsTable.userId, userId));
+
+    const currentCount = countResult?.count || 0;
+
+    if (subscription === "free" && currentCount >= 3) {
+      return res.status(403).json({
+        error: "You have reached the limit of 3 free proposals. Please upgrade your subscription plan to duplicate or generate more.",
+        limitExceeded: true,
+      });
+    }
+
     const [original] = await db
       .select()
       .from(proposalsTable)
-      .where(eq(proposalsTable.id, parsed.data.id));
+      .where(
+        and(
+          eq(proposalsTable.id, parsed.data.id),
+          eq(proposalsTable.userId, userId)
+        )
+      );
 
     if (!original) {
       return res.status(404).json({ error: "Proposal not found" });

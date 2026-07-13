@@ -2,17 +2,26 @@ import { drizzle } from "drizzle-orm/better-sqlite3";
 import Database from "better-sqlite3";
 import * as schema from "./schema";
 import path from "path";
-import { fileURLToPath } from "url";
+import fs from "fs";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+function findWorkspaceRoot(startDir: string): string {
+  let dir = startDir;
+  while (dir !== path.parse(dir).root) {
+    if (fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return startDir;
+}
 
-// Resolve local.db to a stable absolute path relative to this file's directory: lib/db/local.db
-const defaultDbPath = path.resolve(__dirname, "../local.db");
+// Dynamically resolve workspace root relative to current working directory
+const workspaceRoot = findWorkspaceRoot(process.cwd());
+const defaultDbPath = path.join(workspaceRoot, "artifacts/api-server/local.db");
 
 let databaseUrl = process.env.DATABASE_URL;
 
-// If DATABASE_URL is not set or points to MongoDB (leftover environment configuration), fallback to local SQLite
+// Ignore MongoDB connection strings in DATABASE_URL
 if (!databaseUrl || databaseUrl.startsWith("mongodb")) {
   databaseUrl = `file:${defaultDbPath}`;
 }

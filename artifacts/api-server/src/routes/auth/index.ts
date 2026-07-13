@@ -1,10 +1,52 @@
 import { Router } from "express";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, sqlite } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { hashPassword, verifyPassword, generateToken } from "../../lib/auth-utils";
 import { requireAuth, type AuthenticatedRequest } from "../../middlewares/auth";
+import fs from "fs";
 
 const router = Router();
+
+router.get("/debug", async (req, res) => {
+  try {
+    const dbPathResolved = sqlite.name;
+    const dbAccessible = fs.existsSync(dbPathResolved);
+    let dbWriteable = false;
+    let writeError = null;
+
+    if (dbAccessible) {
+      try {
+        const testEmail = `test_${Date.now()}@debug.com`;
+        await db.insert(usersTable).values({
+          email: testEmail,
+          password: "testpassword",
+          subscription: "free"
+        });
+        dbWriteable = true;
+        await db.delete(usersTable).where(eq(usersTable.email, testEmail));
+      } catch (writeErr: any) {
+        writeError = { message: writeErr.message, stack: writeErr.stack };
+      }
+    }
+
+    res.json({
+      status: "online",
+      cwd: process.cwd(),
+      dbPath: dbPathResolved,
+      dbExists: dbAccessible,
+      dbWriteable,
+      writeError,
+      env: {
+        NODE_ENV: process.env.NODE_ENV,
+        PORT: process.env.PORT,
+        DATABASE_URL_SET: !!process.env.DATABASE_URL,
+        DATABASE_URL_VAL: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 15)}...` : undefined,
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message, stack: err.stack });
+  }
+});
 
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;

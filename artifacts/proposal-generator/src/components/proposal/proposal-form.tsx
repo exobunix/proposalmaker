@@ -100,9 +100,7 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
   const createProposal = useCreateProposal({
     mutation: {
       onSuccess: (data) => {
-        toast({ title: "Proposal created successfully" });
         queryClient.invalidateQueries({ queryKey: getListProposalsQueryKey() });
-        setLocation(`/proposals/${data.id}`);
       },
       onError: (err: any) => {
         const errorMsg = err?.status === 403
@@ -128,26 +126,9 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
 
   const generateFullProposal = useGenerateFullProposal({
     mutation: {
-      onSuccess: (data) => {
-        if (proposal) {
-          const defaultEnabledSections = {
-            executiveSummary: true, aboutCompany: true, projectOverview: true,
-            features: true, technologyStack: true, pricing: true,
-            digitalMarketing: true, addOns: true, legalTerms: true, acceptanceSection: true
-          };
-
-          updateProposal.mutate({
-            id: proposal.id,
-            data: {
-              sections: data as any,
-              enabledSections: defaultEnabledSections as any,
-            }
-          });
-        }
-        toast({ title: "AI Generation complete!" });
-      },
+      onSuccess: () => {},
       onError: () => {
-        toast({ title: "Failed to generate content", variant: "destructive" });
+        toast({ title: "Failed to generate AI content. Please check your API key on Render.", variant: "destructive" });
       }
     }
   });
@@ -176,53 +157,62 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
       return;
     }
 
+    const generateData = {
+      clientName: values.clientName,
+      projectName: values.projectName,
+      clientIndustry: values.clientIndustry,
+      projectType: values.projectType,
+      budgetRange: values.budgetRange,
+      additionalContext: values.additionalContext,
+    };
+
+    const defaultEnabledSections = {
+      executiveSummary: true, aboutCompany: true, projectOverview: true,
+      features: true, technologyStack: true, pricing: true,
+      digitalMarketing: true, addOns: true, legalTerms: true, acceptanceSection: true
+    };
+
+    const doGenerateAndNavigate = (propId: number) => {
+      generateFullProposal.mutate(
+        { data: generateData },
+        {
+          onSuccess: (contentData) => {
+            updateProposal.mutate(
+              {
+                id: propId,
+                data: {
+                  sections: contentData as any,
+                  enabledSections: defaultEnabledSections as any,
+                },
+              },
+              {
+                onSuccess: () => {
+                  toast({ title: "Proposal generated! Opening preview..." });
+                  setLocation(`/proposals/${propId}/preview`);
+                }
+              }
+            );
+          },
+        }
+      );
+    };
+
     if (isNew) {
-      // First save, then generate
       const formattedData = {
         ...values,
         projectDate: values.projectDate.toISOString(),
       };
-      
       createProposal.mutate({ data: formattedData }, {
-        onSuccess: (newProp) => {
-          generateFullProposal.mutate({
-            data: {
-              clientName: values.clientName,
-              projectName: values.projectName,
-              clientIndustry: values.clientIndustry,
-              projectType: values.projectType,
-              budgetRange: values.budgetRange,
-              additionalContext: values.additionalContext,
-            }
-          }, {
-            onSuccess: (contentData) => {
-               const defaultEnabledSections = {
-                executiveSummary: true, aboutCompany: true, projectOverview: true,
-                features: true, technologyStack: true, pricing: true,
-                digitalMarketing: true, addOns: true, legalTerms: true, acceptanceSection: true
-              };
-
-              updateProposal.mutate({
-                id: newProp.id,
-                data: {
-                  sections: contentData as any,
-                  enabledSections: defaultEnabledSections as any,
-                }
-              });
-            }
-          });
-        }
+        onSuccess: (newProp) => doGenerateAndNavigate(newProp.id),
       });
     } else if (proposal) {
-      generateFullProposal.mutate({
-        data: {
-          clientName: values.clientName,
-          projectName: values.projectName,
-          clientIndustry: values.clientIndustry,
-          projectType: values.projectType,
-          budgetRange: values.budgetRange,
-          additionalContext: values.additionalContext,
-        }
+      // Save current form values first, then generate
+      const formattedData = {
+        ...values,
+        projectDate: values.projectDate.toISOString(),
+      };
+      updateProposal.mutate({ id: proposal.id, data: formattedData }, {
+        onSuccess: () => doGenerateAndNavigate(proposal.id),
       });
     }
   };

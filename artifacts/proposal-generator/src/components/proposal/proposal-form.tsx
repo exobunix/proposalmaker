@@ -39,6 +39,7 @@ const formSchema = z.object({
   contactDetails: z.string().optional(),
   logoUrl: z.string().optional(),
   signatureUrl: z.string().optional(),
+  additionalContext: z.string().optional(),
 });
 
 interface ProposalFormProps {
@@ -74,6 +75,7 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
       contactDetails: "",
       logoUrl: "",
       signatureUrl: "",
+      additionalContext: "",
     },
   });
 
@@ -90,6 +92,7 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
         contactDetails: proposal.contactDetails || "",
         logoUrl: proposal.logoUrl || "",
         signatureUrl: proposal.signatureUrl || "",
+        additionalContext: proposal.additionalContext || "",
       });
     }
   }, [proposal, form]);
@@ -188,7 +191,8 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
               projectName: values.projectName,
               clientIndustry: values.clientIndustry,
               projectType: values.projectType,
-              budgetRange: values.budgetRange
+              budgetRange: values.budgetRange,
+              additionalContext: values.additionalContext,
             }
           }, {
             onSuccess: (contentData) => {
@@ -216,7 +220,8 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
           projectName: values.projectName,
           clientIndustry: values.clientIndustry,
           projectType: values.projectType,
-          budgetRange: values.budgetRange
+          budgetRange: values.budgetRange,
+          additionalContext: values.additionalContext,
         }
       });
     }
@@ -396,6 +401,24 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
                     <FormLabel>Budget Range</FormLabel>
                     <FormControl>
                       <Input placeholder="e.g. $50,000 - $75,000" {...field} className="bg-background" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="additionalContext"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Proposal Details / Custom Instructions</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Add specific details or instructions for this proposal (e.g. 'focus on cloud hosting, keep the design section very detailed')..." 
+                        className="resize-none h-24 bg-background" 
+                        {...field} 
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

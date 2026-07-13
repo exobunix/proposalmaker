@@ -18,6 +18,7 @@ export interface UpdateProposalBody {
   logoUrl?: string | null;
   contactDetails?: string | null;
   signatureUrl?: string | null;
+  additionalContext?: string | null;
   status?: string;
   sections?: UpdateProposalBodySections;
   enabledSections?: UpdateProposalBodyEnabledSections;

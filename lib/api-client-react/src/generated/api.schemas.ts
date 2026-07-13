@@ -24,6 +24,7 @@ export interface Proposal {
   logoUrl?: string | null;
   contactDetails?: string | null;
   signatureUrl?: string | null;
+  additionalContext?: string | null;
   status: string;
   sections?: ProposalSections;
   enabledSections?: ProposalEnabledSections;
@@ -41,6 +42,7 @@ export interface CreateProposalBody {
   logoUrl?: string | null;
   contactDetails?: string | null;
   signatureUrl?: string | null;
+  additionalContext?: string | null;
 }
 
 export type UpdateProposalBodySections = { [key: string]: unknown } | null;
@@ -59,6 +61,7 @@ export interface UpdateProposalBody {
   logoUrl?: string | null;
   contactDetails?: string | null;
   signatureUrl?: string | null;
+  additionalContext?: string | null;
   status?: string;
   sections?: UpdateProposalBodySections;
   enabledSections?: UpdateProposalBodyEnabledSections;
@@ -88,6 +91,7 @@ export interface GenerateFullProposalBody {
   clientName: string;
   projectName: string;
   budgetRange?: string | null;
+  additionalContext?: string | null;
 }
 
 export interface RewriteContentBody {

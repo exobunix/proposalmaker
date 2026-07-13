@@ -15,6 +15,7 @@ export const proposalsTable = sqliteTable("proposals", {
   logoUrl: text("logo_url"),
   contactDetails: text("contact_details"),
   signatureUrl: text("signature_url"),
+  additionalContext: text("additional_context"),
   status: text("status").notNull().default("draft"),
   sections: text("sections", { mode: "json" }),
   enabledSections: text("enabled_sections", { mode: "json" }),

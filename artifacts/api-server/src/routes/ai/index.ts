@@ -69,7 +69,7 @@ router.post("/generate-content", async (req, res) => {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5.2",
+      model: "gpt-4o-mini",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: buildSystemPrompt() },
@@ -92,10 +92,10 @@ router.post("/generate-full-proposal", async (req, res) => {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { projectType, clientIndustry, clientName, projectName, budgetRange } =
+  const { projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext } =
     parsed.data;
 
-  const context = `Client: ${clientName}, Project: ${projectName}, Type: ${projectType}, Industry: ${clientIndustry}${budgetRange ? `, Budget: ${budgetRange}` : ""}`;
+  const context = `Client: ${clientName}, Project: ${projectName}, Type: ${projectType}, Industry: ${clientIndustry}${budgetRange ? `, Budget: ${budgetRange}` : ""}${additionalContext ? `, Additional Context: ${additionalContext}` : ""}`;
 
   try {
     const generateSection = async (
@@ -103,7 +103,7 @@ router.post("/generate-full-proposal", async (req, res) => {
       prompt: string
     ): Promise<string> => {
       const response = await openai.chat.completions.create({
-        model: "gpt-5.2",
+        model: "gpt-4o-mini",
         max_completion_tokens: 2048,
         messages: [
           { role: "system", content: buildSystemPrompt() },
@@ -211,7 +211,7 @@ router.post("/rewrite", async (req, res) => {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5.2",
+      model: "gpt-4o-mini",
       max_completion_tokens: 8192,
       messages: [
         { role: "system", content: buildSystemPrompt() },

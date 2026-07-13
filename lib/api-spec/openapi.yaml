@@ -263,6 +263,9 @@ components:
         signatureUrl:
           type: string
           nullable: true
+        additionalContext:
+          type: string
+          nullable: true
         status:
           type: string
         sections:
@@ -311,6 +314,9 @@ components:
         signatureUrl:
           type: string
           nullable: true
+        additionalContext:
+          type: string
+          nullable: true
       required:
         - clientName
         - projectName
@@ -341,6 +347,9 @@ components:
           type: string
           nullable: true
         signatureUrl:
+          type: string
+          nullable: true
+        additionalContext:
           type: string
           nullable: true
         status:
@@ -412,6 +421,9 @@ components:
         projectName:
           type: string
         budgetRange:
+          type: string
+          nullable: true
+        additionalContext:
           type: string
           nullable: true
       required:

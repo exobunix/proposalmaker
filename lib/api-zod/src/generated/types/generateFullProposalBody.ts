@@ -12,4 +12,5 @@ export interface GenerateFullProposalBody {
   clientName: string;
   projectName: string;
   budgetRange?: string | null;
+  additionalContext?: string | null;
 }

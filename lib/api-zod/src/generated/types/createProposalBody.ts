@@ -16,4 +16,5 @@ export interface CreateProposalBody {
   logoUrl?: string | null;
   contactDetails?: string | null;
   signatureUrl?: string | null;
+  additionalContext?: string | null;
 }

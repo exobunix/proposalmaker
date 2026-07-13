@@ -29,6 +29,7 @@ export const ListProposalsResponseItem = zod.object({
   logoUrl: zod.string().nullish(),
   contactDetails: zod.string().nullish(),
   signatureUrl: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
   status: zod.string(),
   sections: zod.object({}).passthrough().nullish(),
   enabledSections: zod.object({}).passthrough().nullish(),
@@ -50,6 +51,7 @@ export const CreateProposalBody = zod.object({
   logoUrl: zod.string().nullish(),
   contactDetails: zod.string().nullish(),
   signatureUrl: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
 });
 
 /**
@@ -70,6 +72,7 @@ export const GetProposalResponse = zod.object({
   logoUrl: zod.string().nullish(),
   contactDetails: zod.string().nullish(),
   signatureUrl: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
   status: zod.string(),
   sections: zod.object({}).passthrough().nullish(),
   enabledSections: zod.object({}).passthrough().nullish(),
@@ -94,6 +97,7 @@ export const UpdateProposalBody = zod.object({
   logoUrl: zod.string().nullish(),
   contactDetails: zod.string().nullish(),
   signatureUrl: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
   status: zod.string().optional(),
   sections: zod.object({}).passthrough().nullish(),
   enabledSections: zod.object({}).passthrough().nullish(),
@@ -110,6 +114,7 @@ export const UpdateProposalResponse = zod.object({
   logoUrl: zod.string().nullish(),
   contactDetails: zod.string().nullish(),
   signatureUrl: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
   status: zod.string(),
   sections: zod.object({}).passthrough().nullish(),
   enabledSections: zod.object({}).passthrough().nullish(),
@@ -151,6 +156,7 @@ export const GetProposalStatsResponse = zod.object({
       logoUrl: zod.string().nullish(),
       contactDetails: zod.string().nullish(),
       signatureUrl: zod.string().nullish(),
+      additionalContext: zod.string().nullish(),
       status: zod.string(),
       sections: zod.object({}).passthrough().nullish(),
       enabledSections: zod.object({}).passthrough().nullish(),
@@ -186,6 +192,7 @@ export const GenerateFullProposalBody = zod.object({
   clientName: zod.string(),
   projectName: zod.string(),
   budgetRange: zod.string().nullish(),
+  additionalContext: zod.string().nullish(),
 });
 
 export const GenerateFullProposalResponse = zod.object({

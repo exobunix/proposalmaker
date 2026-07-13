@@ -1,9 +1,9 @@
-import { pgTable, serial, text, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { sqliteTable, integer, text } from "drizzle-orm/sqlite-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const proposalsTable = pgTable("proposals", {
-  id: serial("id").primaryKey(),
+export const proposalsTable = sqliteTable("proposals", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
   clientName: text("client_name").notNull(),
   projectName: text("project_name").notNull(),
   projectDate: text("project_date").notNull(),
@@ -14,10 +14,14 @@ export const proposalsTable = pgTable("proposals", {
   contactDetails: text("contact_details"),
   signatureUrl: text("signature_url"),
   status: text("status").notNull().default("draft"),
-  sections: jsonb("sections"),
-  enabledSections: jsonb("enabled_sections"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  sections: text("sections", { mode: "json" }),
+  enabledSections: text("enabled_sections", { mode: "json" }),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .notNull()
+    .$defaultFn(() => new Date()),
 });
 
 export const insertProposalSchema = createInsertSchema(proposalsTable).omit({

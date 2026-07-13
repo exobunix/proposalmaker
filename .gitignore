@@ -47,3 +47,13 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Env and secrets
+.env
+.env.*
+atlas-credentials.env
+
+# SQLite Databases
+*.db
+*.db-journal
+*.db-wal

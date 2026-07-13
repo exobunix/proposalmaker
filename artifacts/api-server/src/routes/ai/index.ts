@@ -235,6 +235,39 @@ router.post("/upload-logo", async (req, res) => {
 
   const { base64Data, mimeType } = parsed.data;
 
+  if (
+    process.env.IMAGEKIT_PRIVATE_KEY &&
+    process.env.IMAGEKIT_URL_ENDPOINT
+  ) {
+    try {
+      const auth = Buffer.from(process.env.IMAGEKIT_PRIVATE_KEY + ":").toString("base64");
+      const dataUrl = `data:${mimeType};base64,${base64Data}`;
+      const apiResponse = await fetch("https://upload.imagekit.io/api/v1/files/upload", {
+        method: "POST",
+        headers: {
+          "Authorization": `Basic ${auth}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          file: dataUrl,
+          fileName: `upload_${Date.now()}`,
+          folder: "/Proposal maker",
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        const errorText = await apiResponse.text();
+        req.log.error({ errorText }, "ImageKit upload failed response");
+        throw new Error(`ImageKit upload failed with status ${apiResponse.status}`);
+      }
+
+      const result = await apiResponse.json() as { url: string };
+      return res.json({ url: result.url });
+    } catch (err) {
+      req.log.error({ err }, "ImageKit upload failed, falling back to base64");
+    }
+  }
+
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
   res.json({ url: dataUrl });
 });

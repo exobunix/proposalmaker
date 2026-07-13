@@ -9,7 +9,14 @@ const __dirname = path.dirname(__filename);
 
 // Resolve local.db to a stable absolute path relative to this file's directory: lib/db/local.db
 const defaultDbPath = path.resolve(__dirname, "../local.db");
-const databaseUrl = process.env.DATABASE_URL || `file:${defaultDbPath}`;
+
+let databaseUrl = process.env.DATABASE_URL;
+
+// If DATABASE_URL is not set or points to MongoDB (leftover environment configuration), fallback to local SQLite
+if (!databaseUrl || databaseUrl.startsWith("mongodb")) {
+  databaseUrl = `file:${defaultDbPath}`;
+}
+
 const dbPath = databaseUrl.replace(/^file:/, "");
 
 export const sqlite = new Database(dbPath);

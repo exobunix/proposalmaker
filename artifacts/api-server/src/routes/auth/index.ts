@@ -48,9 +48,14 @@ router.post("/register", async (req, res) => {
         subscription: user.subscription,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     req.log.error({ err }, "Registration error");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      details: err?.message || String(err),
+      code: err?.code,
+      stack: err?.stack
+    });
   }
 });
 
@@ -81,9 +86,14 @@ router.post("/login", async (req, res) => {
         subscription: user.subscription,
       },
     });
-  } catch (err) {
+  } catch (err: any) {
     req.log.error({ err }, "Login error");
-    res.status(500).json({ error: "Internal server error" });
+    res.status(500).json({
+      error: "Internal server error",
+      details: err?.message || String(err),
+      code: err?.code,
+      stack: err?.stack
+    });
   }
 });
 

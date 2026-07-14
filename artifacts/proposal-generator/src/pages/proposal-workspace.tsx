@@ -25,10 +25,10 @@ export default function ProposalWorkspace() {
     localStorage.setItem(`proposal_theme_${id || 'new'}`, newTheme);
   };
 
-  const { data: proposal, isLoading } = useGetProposal(id!, {
+  const { data: proposal, isLoading } = useGetProposal(id || 0, {
     query: {
-      enabled: !!id,
-      queryKey: getGetProposalQueryKey(id!)
+      enabled: !isNew && !!id,
+      queryKey: getGetProposalQueryKey(id || 0)
     }
   });
 

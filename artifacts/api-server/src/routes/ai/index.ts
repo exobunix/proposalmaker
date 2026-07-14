@@ -28,7 +28,7 @@ function buildSystemPrompt(): string {
   return `You are an expert senior business proposal writer and digital consultant working for a premium IT firm.
 
 Your proposals are renowned for being:
-- Extremely detailed, comprehensive and thorough
+- Extremely detailed, comprehensive and thorough (do not skip details, produce high density information)
 - Written like a top-tier consulting firm (McKinsey, Deloitte Digital, Accenture)
 - Rich with specific technical details, feature breakdowns, timelines, and business rationale
 - Structured with clear headings, subheadings, bullet points, numbered lists, and tables
@@ -37,7 +37,7 @@ Your proposals are renowned for being:
 FORMATTING RULES (strictly follow these):
 - Use markdown formatting: ## for main headings, ### for subheadings, **bold** for key terms, - for bullets
 - Include real, specific details — never write generic placeholder text
-- Minimum 400-600 words per section unless specified otherwise
+- Minimum 600-800 words per section to ensure thoroughness and matching of enterprise PDF standards
 - Use tables where applicable (pricing, tech stack, timeline)
 - Break up text with subheadings every 2-3 paragraphs
 - Use numbered lists for sequential steps or ranked items
@@ -67,28 +67,27 @@ Include ALL of the following in your Executive Summary:
 ### The Opportunity
 - Paint a vivid picture of the business challenge or opportunity "${clientName}" faces in today's ${clientIndustry} market
 - Reference relevant industry trends, market statistics, and competitive pressures
-- Explain the cost of inaction
+- Explain the cost of inaction (lost revenue, customer attrition, technical debt)
 
 ### Our Proposed Solution
 - Describe "${projectName}" as a transformative, tailor-made ${projectType} solution
-- Highlight the 3-5 core pillars of the solution
+- Highlight the 3-5 core pillars of the solution (e.g., scalable architecture, multi-tenant portal, modern client channels)
 - Explain how it directly addresses their specific challenges
 
 ### Why Choose Us
-- Highlight our firm's unique qualifications for this project
+- Highlight our firm's unique qualifications for this project (8+ years experience, 400+ successful projects, ISO 27001)
 - Reference relevant success stories and expertise
 
 ### Expected Business Impact
-- List 4-6 specific, measurable outcomes (increase conversions by X%, reduce operational costs, etc.)
+- List 4-6 specific, measurable outcomes (increase conversions by X%, reduce operational costs by Y%, improve SLA fulfillment)
 - ROI projection and timeline to break even
 - Long-term strategic value
 
 ### Engagement Overview
-- High-level timeline (e.g. 3-month delivery plan)
-- Our collaborative approach
-- Clear next steps after proposal acceptance
+- High-level timeline (e.g. 20-week delivery plan)
+- Our collaborative approach and next steps after proposal acceptance
 
-Write in a confident, premium consulting tone. Be specific to the ${clientIndustry} industry. Minimum 500 words.${extra}`,
+Write in a confident, premium consulting tone. Be specific to the ${clientIndustry} industry. Minimum 600 words.${extra}`,
 
     aboutCompany: `Write a detailed "About Our Company" section for a proposal to "${clientName}". This section must establish credibility, showcase expertise, and build trust.
 
@@ -109,7 +108,7 @@ Include ALL of the following:
 - Types of clients we've worked with (Fortune 500, high-growth startups)
 - Range of projects delivered successfully
 - Client retention rate and satisfaction metrics
-- Awards and certifications
+- Awards and certifications (e.g. ISO 27001 certified)
 
 ### Our Development Philosophy
 - Agile methodology and iterative delivery
@@ -120,7 +119,7 @@ Include ALL of the following:
 - Specific alignment between our expertise and this project's requirements
 - Our commitment to on-time, on-budget delivery
 
-Write in a proud, confident, premium tone. Minimum 450 words.${extra}`,
+Write in a proud, confident, premium tone. Minimum 600 words.${extra}`,
 
     projectOverview: `Write a highly detailed Project Overview for "${projectName}" — a ${projectType} solution for "${clientName}" in the ${clientIndustry} industry. ${budget}
 
@@ -137,9 +136,12 @@ Include ALL of the following:
 - Business impact of these problems
 
 ### Proposed Solution Architecture
-- High-level description of the system and its core components
-- How different modules integrate with each other
-- Key technical decisions and their rationale
+Must be presented as a clear bulleted list using the exact format below:
+- **Client Channels**: List user-facing apps/panels (e.g., Owner App, Vendor App, Technician App, Web portals)
+- **API Gateway Layer**: Describe routing and rate limiting (e.g., APISIX API Gateway)
+- **Identity Provider**: Keycloak for SSO, OAuth 2.0, and fine-grained RBAC
+- **Microservices Backend**: Core services (e.g., Property Service, Maintenance Service, Notification Service)
+- **Data & Infrastructure Layer**: Infrastructure components (e.g., PostgreSQL, Redis, RabbitMQ, Kubernetes, Prometheus, Grafana, Loki, MinIO)
 
 ### Core Objectives
 List 5-8 specific, measurable project objectives:
@@ -157,12 +159,16 @@ List 5-8 specific, measurable project objectives:
 ### Project Timeline Overview
 | Phase | Duration | Deliverables |
 |-------|----------|-------------|
-| Discovery & Planning | 2 weeks | ... |
-(include all phases)
+| Discovery & Planning | 2 weeks | Requirement workshops, BRD, design setup |
+| UI/UX Design | 3 weeks | Wireframes, prototypes, approved design system |
+| Architecture & Setup | 2 weeks | Cloud provisioning, CI/CD, environments |
+| Core Development | 10 weeks | APIs, database integration, apps, portals |
+| Testing & QA | 2 weeks | Integration testing, security audits, UAT |
+| Handover & Launch | 1 week | Production rollout, training, hypercare |
 
-Write with deep technical and business insight. Minimum 500 words.${extra}`,
+Write with deep technical and business insight. Minimum 700 words.${extra}`,
 
-    features: `Write an extremely comprehensive Features section for "${projectName}" (${projectType}) for "${clientName}" in ${clientIndustry}. This should be the most detailed section of the proposal.
+    features: `Write an extremely comprehensive Features & Modules breakdown section for "${projectName}" (${projectType}) for "${clientName}" in ${clientIndustry}. This should be the most detailed section of the proposal.
 
 Format as follows:
 ## Key Features & Modules
@@ -170,15 +176,17 @@ Format as follows:
 ### 1. User Panel / Customer-Facing Interface
 #### [Feature Group Name]
 - **Feature Name**: Detailed description of what this feature does, why it matters, and how it works
-(List 8-12 features with detailed descriptions)
+(List 6-8 features with detailed descriptions)
 
 ### 2. Admin Panel / Back-Office Dashboard
 #### [Admin Feature Group]
-- **Feature Name**: Description
-(List 8-10 admin features)
+- **Feature Name**: Detailed description of what this admin feature does
+(List 6-8 admin features)
 
-### 3. [Third Panel if applicable — Vendor, Driver, Agent, etc.]
-(If it's a marketplace, add vendor panel; if logistics, add driver panel; if SaaS, add enterprise admin; customize for the industry)
+### 3. [Third Panel if applicable — Vendor, Driver, Agent, etc. (Or Advanced Platform Features)]
+#### [Third Panel Feature Group]
+- **Feature Name**: Detailed description
+(List 5-6 features)
 
 ### 4. Advanced Platform Features
 - **Real-Time Notifications**: Push, email, and SMS notification system for all user actions
@@ -191,12 +199,9 @@ Format as follows:
 - **Mobile Responsive Design**: Fully responsive interface optimized for all screen sizes
 
 ### 5. AI & Automation Features
-(List relevant AI features for the project type and industry)
+- Detail how AI or automation enhances productivity or user engagement in this project.
 
-### 6. Reporting & Analytics
-(Detail reporting capabilities)
-
-Be extremely specific and detailed. Minimum 600 words. Tailor every feature to the ${clientIndustry} industry.${extra}`,
+Be extremely specific and detailed. Minimum 800 words. Tailor every feature to the ${clientIndustry} industry.${extra}`,
 
     technologyStack: `Write a detailed Technology Stack section for "${projectName}" (${projectType}) for "${clientName}" in ${clientIndustry}.
 
@@ -206,47 +211,26 @@ Format as follows:
 ### Overview
 - 1-2 paragraphs explaining our technology selection philosophy and how choices were made for this specific project
 
-### Frontend Development
-| Technology | Purpose | Why We Chose It |
-|-----------|---------|----------------|
-| React.js / Next.js | UI Framework | Server-side rendering, SEO, performance |
-(add all frontend technologies)
-
-### Backend Development
-| Technology | Purpose | Why We Chose It |
-|-----------|---------|----------------|
-(list all backend technologies with reasoning)
-
-### Database Architecture
-| Database | Type | Use Case |
-|---------|------|---------|
-(list primary database, cache layer, search engine if applicable)
-
-### Cloud Infrastructure & DevOps
-| Service | Provider | Purpose |
-|--------|---------|--------|
-(AWS/GCP/Azure services, CI/CD, monitoring)
-
-### Third-Party Integrations
-- **Payment**: Stripe / Razorpay / PayPal
-- **Communication**: Twilio (SMS), SendGrid (Email), Firebase (Push)
-- **Maps**: Google Maps API
-- **Analytics**: Google Analytics, Mixpanel
-(list all relevant integrations for the project type)
+### Enterprise Technology Stack
+You must include a markdown table in the exact format below:
+| Layer | Technology | Purpose & Rationale |
+|---|---|---|
+| Backend | Java 21 / Spring Boot 3 / Spring Cloud | Microservices framework, enterprise reliability, service discovery, scalability |
+| Frontend | React 18 / Next.js 14 | Web admin panels, component-driven UI, server-side rendering, SEO-optimized portals |
+| Mobile | Flutter 3 | Cross-platform mobile development (iOS & Android) with native performance |
+| Data & Messaging | PostgreSQL 16 / Redis 7 / RabbitMQ | ACID compliance, caching, rate limiting, and asynchronous event delivery |
+| Platform & Security | Keycloak / APISIX | Single Sign-On (SSO), OAuth 2.0, API routing, WAF, and rate limiting |
+| Observability & Infra | Kubernetes / Prometheus + Grafana / Loki + MinIO | Container orchestration, real-time metrics, log aggregation, and S3 object storage |
 
 ### Security Architecture
-- SSL/TLS encryption, data encryption at rest
-- OWASP Top 10 compliance
-- Regular security audits and penetration testing
-(expand with project-specific security measures)
+- **Identity & Access Management**: Keycloak-powered SSO, RBAC, OAuth 2.0, Multi-Factor Authentication (MFA)
+- **API & Transport Security**: End-to-end TLS 1.3, JWT validation at gateway, rate limiting, and WAF protection
+- **Data Protection**: Database-per-tenant isolation, AES-256 encryption at rest, secure signed URLs, and PII masking
+- **Monitoring & Audit**: Centralized logs via Loki, metrics via Prometheus, and security dashboards in Grafana
+- **Resilience & Recovery**: Automated daily encrypted backups, multi-zone HA Kubernetes deployments, and DR runbooks
 
-### Performance & Scalability
-- Expected load handling capacity
-- Horizontal scaling strategy
-- Caching strategy and CDN usage
-- Expected uptime SLA
+Write with technical depth and business justification. Minimum 600 words.${extra}`,
 
-Write with technical depth and business justification. Minimum 450 words.${extra}`,
 
     pricing: `Write a comprehensive Investment & Pricing section for "${projectName}" (${projectType}) for "${clientName}". ${budget}
 

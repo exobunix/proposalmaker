@@ -20,7 +20,7 @@ let databaseUrl = process.env.DATABASE_URL;
 
 // Ignore MongoDB connection strings in DATABASE_URL for drizzle-kit
 if (!databaseUrl || databaseUrl.startsWith("mongodb")) {
-  databaseUrl = `file:${defaultDbPath}`;
+  databaseUrl = `file:${defaultDbPath.replace(/\\/g, "/")}`;
 }
 
 export default defineConfig({
@@ -28,5 +28,6 @@ export default defineConfig({
   dialect: "sqlite",
   dbCredentials: {
     url: databaseUrl,
+    authToken: process.env.DATABASE_AUTH_TOKEN,
   },
 });

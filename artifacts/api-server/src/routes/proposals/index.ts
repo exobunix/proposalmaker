@@ -1,6 +1,5 @@
 import { Router } from "express";
-import { eq, and, desc, count } from "drizzle-orm";
-import { db, proposalsTable } from "@workspace/db";
+import { Proposal } from "@workspace/db";
 import {
   CreateProposalBody,
   UpdateProposalBody,
@@ -19,11 +18,7 @@ router.use(requireAuth);
 router.get("/stats", async (req: AuthenticatedRequest, res) => {
   const userId = req.user!.id;
   try {
-    const allProposals = await db
-      .select()
-      .from(proposalsTable)
-      .where(eq(proposalsTable.userId, userId))
-      .orderBy(desc(proposalsTable.createdAt));
+    const allProposals = await Proposal.find({ userId }).sort({ createdAt: -1 }).lean();
 
     const total = allProposals.length;
     const draft = allProposals.filter((p) => p.status === "draft").length;
@@ -41,11 +36,7 @@ router.get("/stats", async (req: AuthenticatedRequest, res) => {
 router.get("/", async (req: AuthenticatedRequest, res) => {
   const userId = req.user!.id;
   try {
-    const proposals = await db
-      .select()
-      .from(proposalsTable)
-      .where(eq(proposalsTable.userId, userId))
-      .orderBy(desc(proposalsTable.createdAt));
+    const proposals = await Proposal.find({ userId }).sort({ createdAt: -1 }).lean();
     res.json(proposals);
   } catch (err) {
     req.log.error({ err }, "Failed to list proposals");
@@ -64,12 +55,7 @@ router.post("/", async (req: AuthenticatedRequest, res) => {
 
   try {
     // Check 3-proposal limit for free users
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(proposalsTable)
-      .where(eq(proposalsTable.userId, userId));
-
-    const currentCount = countResult?.count || 0;
+    const currentCount = await Proposal.countDocuments({ userId });
 
     if (subscription === "free" && currentCount >= 3) {
       return res.status(403).json({
@@ -91,15 +77,12 @@ router.post("/", async (req: AuthenticatedRequest, res) => {
       acceptanceSection: true,
     };
 
-    const [proposal] = await db
-      .insert(proposalsTable)
-      .values({
-        ...parsed.data,
-        userId,
-        status: "draft",
-        enabledSections: defaultEnabledSections,
-      })
-      .returning();
+    const proposal = await Proposal.create({
+      ...parsed.data,
+      userId,
+      status: "draft",
+      enabledSections: defaultEnabledSections,
+    });
 
     res.status(201).json(proposal);
   } catch (err) {
@@ -116,15 +99,7 @@ router.get("/:id", async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const [proposal] = await db
-      .select()
-      .from(proposalsTable)
-      .where(
-        and(
-          eq(proposalsTable.id, parsed.data.id),
-          eq(proposalsTable.userId, userId)
-        )
-      );
+    const proposal = await Proposal.findOne({ id: parsed.data.id, userId }).lean();
 
     if (!proposal) {
       return res.status(404).json({ error: "Proposal not found" });
@@ -152,19 +127,11 @@ router.put("/:id", async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const [proposal] = await db
-      .update(proposalsTable)
-      .set({
-        ...bodyParsed.data,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(proposalsTable.id, paramsParsed.data.id),
-          eq(proposalsTable.userId, userId)
-        )
-      )
-      .returning();
+    const proposal = await Proposal.findOneAndUpdate(
+      { id: paramsParsed.data.id, userId },
+      { $set: bodyParsed.data },
+      { new: true }
+    ).lean();
 
     if (!proposal) {
       return res.status(404).json({ error: "Proposal not found" });
@@ -185,23 +152,13 @@ router.delete("/:id", async (req: AuthenticatedRequest, res) => {
   }
 
   try {
-    const [existing] = await db
-      .select()
-      .from(proposalsTable)
-      .where(
-        and(
-          eq(proposalsTable.id, parsed.data.id),
-          eq(proposalsTable.userId, userId)
-        )
-      );
+    const existing = await Proposal.findOne({ id: parsed.data.id, userId });
 
     if (!existing) {
       return res.status(404).json({ error: "Proposal not found" });
     }
 
-    await db
-      .delete(proposalsTable)
-      .where(eq(proposalsTable.id, parsed.data.id));
+    await Proposal.deleteOne({ id: parsed.data.id });
 
     res.status(204).send();
   } catch (err) {
@@ -223,12 +180,7 @@ router.post("/:id/duplicate", async (req: AuthenticatedRequest, res) => {
 
   try {
     // Check 3-proposal limit for free users
-    const [countResult] = await db
-      .select({ count: count() })
-      .from(proposalsTable)
-      .where(eq(proposalsTable.userId, userId));
-
-    const currentCount = countResult?.count || 0;
+    const currentCount = await Proposal.countDocuments({ userId });
 
     if (subscription === "free" && currentCount >= 3) {
       return res.status(403).json({
@@ -237,29 +189,18 @@ router.post("/:id/duplicate", async (req: AuthenticatedRequest, res) => {
       });
     }
 
-    const [original] = await db
-      .select()
-      .from(proposalsTable)
-      .where(
-        and(
-          eq(proposalsTable.id, parsed.data.id),
-          eq(proposalsTable.userId, userId)
-        )
-      );
+    const original = await Proposal.findOne({ id: parsed.data.id, userId }).lean();
 
     if (!original) {
       return res.status(404).json({ error: "Proposal not found" });
     }
 
-    const { id, createdAt, updatedAt, ...rest } = original;
-    const [duplicate] = await db
-      .insert(proposalsTable)
-      .values({
-        ...rest,
-        projectName: `${rest.projectName} (Copy)`,
-        status: "draft",
-      })
-      .returning();
+    const { id, createdAt, updatedAt, _id, __v, ...rest } = original;
+    const duplicate = await Proposal.create({
+      ...rest,
+      projectName: `${rest.projectName} (Copy)`,
+      status: "draft",
+    });
 
     res.status(201).json(duplicate);
   } catch (err) {

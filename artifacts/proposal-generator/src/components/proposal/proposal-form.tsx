@@ -45,6 +45,8 @@ const formSchema = z.object({
 interface ProposalFormProps {
   proposal?: Proposal;
   isNew: boolean;
+  selectedTheme: string;
+  onThemeChange: (theme: string) => void;
 }
 
 const INDUSTRIES = [
@@ -57,7 +59,16 @@ const PROJECT_TYPES = [
   "E-Commerce", "Enterprise Software", "Custom Solution"
 ];
 
-export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
+const THEMES = [
+  { value: "indigo", label: "Tech Indigo (Default)", colorClass: "bg-indigo-600" },
+  { value: "emerald", label: "Emerald Mint", colorClass: "bg-emerald-600" },
+  { value: "sunset", label: "Sunset Gold", colorClass: "bg-amber-500" },
+  { value: "rose", label: "Rose Gold", colorClass: "bg-rose-500" },
+  { value: "navy", label: "Corporate Navy", colorClass: "bg-blue-800" },
+  { value: "obsidian", label: "Obsidian Luxury", colorClass: "bg-slate-900" }
+];
+
+export function ProposalForm({ proposal, isNew, selectedTheme, onThemeChange }: ProposalFormProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -414,6 +425,28 @@ export function ProposalForm({ proposal, isNew }: ProposalFormProps) {
                   </FormItem>
                 )}
               />
+            </div>
+
+            <div className="border-t border-border pt-6 space-y-4">
+              <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-wider">Design & Style</h3>
+              <div className="space-y-2">
+                <FormLabel>Proposal Color Theme</FormLabel>
+                <Select onValueChange={onThemeChange} value={selectedTheme}>
+                  <SelectTrigger className="bg-background">
+                    <SelectValue placeholder="Select theme" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {THEMES.map(t => (
+                      <SelectItem key={t.value} value={t.value}>
+                        <div className="flex items-center gap-2">
+                          <span className={`w-3.5 h-3.5 rounded-full ${t.colorClass} border border-white/10`} />
+                          <span>{t.label}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="border-t border-border pt-6 space-y-4">

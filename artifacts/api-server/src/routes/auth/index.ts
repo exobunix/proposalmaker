@@ -1,46 +1,41 @@
 import { Router } from "express";
-import { db, usersTable, sqlite } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { User } from "@workspace/db";
 import { hashPassword, verifyPassword, generateToken } from "../../lib/auth-utils";
 import { requireAuth, type AuthenticatedRequest } from "../../middlewares/auth";
-import fs from "fs";
 
 const router = Router();
 
 router.get("/debug", async (req, res) => {
   try {
-    const dbPathResolved = sqlite.name;
-    const dbAccessible = fs.existsSync(dbPathResolved);
+    let dbAccessible = false;
     let dbWriteable = false;
     let writeError = null;
 
-    if (dbAccessible) {
-      try {
-        const testEmail = `test_${Date.now()}@debug.com`;
-        await db.insert(usersTable).values({
-          email: testEmail,
-          password: "testpassword",
-          subscription: "free"
-        });
-        dbWriteable = true;
-        await db.delete(usersTable).where(eq(usersTable.email, testEmail));
-      } catch (writeErr: any) {
-        writeError = { message: writeErr.message, stack: writeErr.stack };
-      }
+    try {
+      const testEmail = `test_${Date.now()}@debug.com`;
+      await User.create({
+        email: testEmail,
+        password: "testpassword",
+        subscription: "free"
+      });
+      dbAccessible = true;
+      dbWriteable = true;
+      await User.deleteOne({ email: testEmail });
+    } catch (writeErr: any) {
+      writeError = { message: writeErr.message, stack: writeErr.stack };
     }
 
     res.json({
       status: "online",
       cwd: process.cwd(),
-      dbPath: dbPathResolved,
-      dbExists: dbAccessible,
+      dbAccessible,
       dbWriteable,
       writeError,
       env: {
         NODE_ENV: process.env.NODE_ENV,
         PORT: process.env.PORT,
-        DATABASE_URL_SET: !!process.env.DATABASE_URL,
-        DATABASE_URL_VAL: process.env.DATABASE_URL ? `${process.env.DATABASE_URL.substring(0, 15)}...` : undefined,
+        DATABASE_URL_SET: !!process.env.DATABASE_URL || !!process.env.MONGODB_URI,
+        DATABASE_URL_VAL: (process.env.DATABASE_URL || process.env.MONGODB_URI) ? `${(process.env.DATABASE_URL || process.env.MONGODB_URI)!.substring(0, 15)}...` : undefined,
       }
     });
   } catch (err: any) {
@@ -60,10 +55,7 @@ router.post("/register", async (req, res) => {
   }
 
   try {
-    const [existing] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email.toLowerCase().trim()));
+    const existing = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (existing) {
       return res.status(400).json({ error: "Email already registered" });
@@ -71,14 +63,11 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = hashPassword(password);
 
-    const [user] = await db
-      .insert(usersTable)
-      .values({
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        subscription: "free",
-      })
-      .returning();
+    const user = await User.create({
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      subscription: "free",
+    });
 
     const token = generateToken(user.id);
 
@@ -109,10 +98,7 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const [user] = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email.toLowerCase().trim()));
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
 
     if (!user || !verifyPassword(password, user.password)) {
       return res.status(400).json({ error: "Invalid email or password" });

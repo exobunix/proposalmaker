@@ -4,11 +4,26 @@ import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/componen
 import { ProposalForm } from "@/components/proposal/proposal-form";
 import { ProposalPreviewPanel } from "@/components/proposal/proposal-preview-panel";
 import { Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
 
 export default function ProposalWorkspace() {
   const params = useParams();
   const isNew = !params.id || params.id === "new";
   const id = isNew ? null : parseInt(params.id!);
+
+  const [selectedTheme, setSelectedTheme] = useState<string>("indigo");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`proposal_theme_${id || 'new'}`);
+    if (saved) {
+      setSelectedTheme(saved);
+    }
+  }, [id]);
+
+  const handleThemeChange = (newTheme: string) => {
+    setSelectedTheme(newTheme);
+    localStorage.setItem(`proposal_theme_${id || 'new'}`, newTheme);
+  };
 
   const { data: proposal, isLoading } = useGetProposal(id!, {
     query: {
@@ -29,13 +44,22 @@ export default function ProposalWorkspace() {
     <div className="h-full w-full overflow-hidden bg-background">
       <ResizablePanelGroup direction="horizontal">
         <ResizablePanel defaultSize={40} minSize={30} className="border-r border-border bg-sidebar/30">
-          <ProposalForm proposal={proposal} isNew={isNew} />
+          <ProposalForm 
+            proposal={proposal} 
+            isNew={isNew} 
+            selectedTheme={selectedTheme} 
+            onThemeChange={handleThemeChange} 
+          />
         </ResizablePanel>
         <ResizableHandle className="w-1.5 bg-border hover:bg-primary/50 transition-colors" />
         <ResizablePanel defaultSize={60} minSize={30} className="bg-muted/10 relative overflow-hidden">
-          <ProposalPreviewPanel proposal={proposal} />
+          <ProposalPreviewPanel 
+            proposal={proposal} 
+            selectedTheme={selectedTheme} 
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     </div>
   );
 }
+

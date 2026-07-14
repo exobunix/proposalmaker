@@ -1,7 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../lib/auth-utils";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { User } from "@workspace/db";
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -32,20 +31,17 @@ export async function requireAuth(
   }
 
   try {
-    const [user] = await db
-      .select({
-        id: usersTable.id,
-        email: usersTable.email,
-        subscription: usersTable.subscription,
-      })
-      .from(usersTable)
-      .where(eq(usersTable.id, decoded.userId));
+    const user = await User.findOne({ id: decoded.userId }).select("id email subscription");
 
     if (!user) {
       return res.status(401).json({ error: "User not found" });
     }
 
-    req.user = user;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      subscription: user.subscription,
+    };
     next();
   } catch (err) {
     req.log.error({ err }, "Auth middleware database error");

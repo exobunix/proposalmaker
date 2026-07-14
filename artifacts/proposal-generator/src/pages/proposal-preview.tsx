@@ -1,6 +1,6 @@
 import { useParams, Link } from "wouter";
 import { useGetProposal, getGetProposalQueryKey } from "@workspace/api-client-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Loader2, ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
@@ -23,6 +23,184 @@ function loadScript(src: string): Promise<void> {
     document.head.appendChild(s);
   });
 }
+
+// ─── Custom Parser Helpers & Components ────────────────────────────────────────
+
+function parseArchitecture(markdown: string) {
+  if (!markdown) return null;
+  const layers = [
+    { key: "Client Channels", label: "Client Channels (User-Facing Applications)", color: "#3B82F6", icon: "📱" },
+    { key: "API Gateway Layer", label: "API Gateway Layer", color: "#6366F1", icon: "🌐" },
+    { key: "Identity Provider", label: "Identity & Authentication (Keycloak SSO)", color: "#EC4899", icon: "🔑" },
+    { key: "Microservices Backend", label: "Microservices Backend (Core Spring Boot)", color: "#8B5CF6", icon: "⚙️" },
+    { key: "Data & Infrastructure Layer", label: "Data & Infrastructure Layer", color: "#10B981", icon: "🗄️" }
+  ];
+
+  const parsed: { label: string; text: string; color: string; icon: string }[] = [];
+  
+  for (const layer of layers) {
+    const regex = new RegExp(`(?:[-*•]|\\d+\\.)\\s+\\*\\*${layer.key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\*\\*:\\s*(.*)`, "i");
+    const match = markdown.match(regex);
+    if (match && match[1]) {
+      parsed.push({
+        label: layer.label,
+        text: match[1].trim(),
+        color: layer.color,
+        icon: layer.icon
+      });
+    }
+  }
+
+  if (parsed.length === 0) return null;
+  return parsed;
+}
+
+function ArchitectureDiagram({ markdown }: { markdown: string }) {
+  const layers = parseArchitecture(markdown);
+  if (!layers) return null;
+
+  return (
+    <div style={{ marginTop: "24px", marginBottom: "32px", background: "#0f172a", borderRadius: "16px", padding: "32px", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.1rem", color: "white", marginBottom: "24px", textAlign: "center" }}>
+        🌐 System Architecture Blueprint
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px" }}>
+        {layers.map((layer, idx) => (
+          <div key={idx} style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ width: "100%", maxWidth: "680px", background: "rgba(255,255,255,0.03)", border: `1px solid ${layer.color}60`, borderLeft: `6px solid ${layer.color}`, borderRadius: "12px", padding: "18px 24px", display: "flex", alignItems: "center", gap: "18px" }}>
+              <div style={{ width: "42px", height: "42px", borderRadius: "10px", background: `${layer.color}20`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.3rem", flexShrink: 0 }}>
+                {layer.icon}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>
+                  {layer.label}
+                </div>
+                <div style={{ fontSize: "0.9rem", color: "white", fontWeight: 500, marginTop: "2px", lineHeight: 1.4 }}>
+                  {layer.text}
+                </div>
+              </div>
+            </div>
+            {idx < layers.length - 1 && (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", margin: "4px 0" }}>
+                <div style={{ width: "2px", height: "14px", background: "linear-gradient(180deg, " + layer.color + ", " + layers[idx+1].color + ")" }} />
+                <div style={{ fontSize: "0.8rem", color: "rgba(255,255,255,0.25)" }}>▼</div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function parseTechTable(markdown: string) {
+  if (!markdown) return null;
+  const lines = markdown.split("\n");
+  const techRows: { layer: string; tech: string; desc: string }[] = [];
+  for (const line of lines) {
+    if (line.includes("|") && !line.includes("Layer | Technology")) {
+      const cells = line.split("|").map(c => c.trim()).filter(c => c !== "");
+      if (cells.length >= 3 && !cells[1].startsWith("---") && !cells[1].startsWith("-")) {
+        techRows.push({
+          layer: cells[0].replace(/\*\*/g, ""),
+          tech: cells[1].replace(/\*\*/g, ""),
+          desc: cells[2]
+        });
+      }
+    }
+  }
+  return techRows.length > 0 ? techRows : null;
+}
+
+const techIcons: Record<string, string> = {
+  Backend: "☕", Frontend: "⚛️", Mobile: "📱", "Data & Messaging": "🗄️", "Platform & Security": "🔐", "Observability & Infra": "☁️"
+};
+const techColors: Record<string, string> = {
+  Backend: "#EF4444", Frontend: "#3B82F6", Mobile: "#8B5CF6", "Data & Messaging": "#F59E0B", "Platform & Security": "#EC4899", "Observability & Infra": "#10B981"
+};
+
+function TechStackVisual({ markdown }: { markdown: string }) {
+  const rows = parseTechTable(markdown);
+  if (!rows) return null;
+
+  return (
+    <div style={{ marginTop: "24px", marginBottom: "32px", background: "#f8fafc", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0" }}>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.1rem", color: "#1e293b", marginBottom: "24px", textAlign: "center" }}>
+        🛠️ Enterprise Technology Stack
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+        {rows.map((row, idx) => {
+          const color = techColors[row.layer] || "#6366F1";
+          const icon = techIcons[row.layer] || "🔧";
+          return (
+            <div key={idx} style={{ background: "white", borderRadius: "12px", padding: "20px", border: `1px solid ${color}30`, borderTop: `4px solid ${color}`, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
+                <span style={{ fontSize: "1.3rem" }}>{icon}</span>
+                <div>
+                  <div style={{ fontSize: "0.68rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", fontWeight: 700 }}>{row.layer}</div>
+                  <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#1e293b" }}>{row.tech}</div>
+                </div>
+              </div>
+              <div style={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.5 }}>{row.desc}</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function parseTimelineTable(markdown: string) {
+  if (!markdown) return null;
+  const lines = markdown.split("\n");
+  const timelineRows: { phase: string; duration: string; deliverables: string }[] = [];
+  for (const line of lines) {
+    if (line.includes("|") && !line.includes("Phase | Duration")) {
+      const cells = line.split("|").map(c => c.trim()).filter(c => c !== "");
+      if (cells.length >= 3 && !cells[1].startsWith("---") && !cells[1].startsWith("-")) {
+        timelineRows.push({
+          phase: cells[0].replace(/\*\*/g, ""),
+          duration: cells[1].replace(/\*\*/g, ""),
+          deliverables: cells[2]
+        });
+      }
+    }
+  }
+  return timelineRows.length > 0 ? timelineRows : null;
+}
+
+function TimelineVisual({ markdown }: { markdown: string }) {
+  const phases = parseTimelineTable(markdown);
+  if (!phases) return null;
+
+  return (
+    <div style={{ marginTop: "28px", marginBottom: "32px", background: "white", borderRadius: "16px", padding: "32px", border: "1px solid #e2e8f0", boxShadow: "0 4px 16px rgba(0,0,0,0.04)" }}>
+      <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.1rem", color: "#1e293b", marginBottom: "28px", textAlign: "center" }}>
+        📅 Projected Development Timeline
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "20px", position: "relative", paddingLeft: "16px" }}>
+        {/* vertical connector line */}
+        <div style={{ position: "absolute", left: "24px", top: "10px", bottom: "10px", width: "2px", background: "linear-gradient(180deg, #4F46E5 0%, #EC4899 100%)", opacity: 0.3 }} />
+        
+        {phases.map((p, idx) => (
+          <div key={idx} style={{ display: "flex", gap: "24px", position: "relative" }}>
+            <div style={{ width: "18px", height: "18px", borderRadius: "50%", background: idx === 0 ? "#4F46E5" : idx === phases.length - 1 ? "#EC4899" : "#8B5CF6", border: "4px solid white", boxShadow: "0 0 0 3px rgba(139,92,246,0.25)", flexShrink: 0, zIndex: 2, marginTop: "4px" }} />
+            <div style={{ background: "#f8fafc", border: "1px solid #f1f5f9", borderRadius: "12px", padding: "16px 20px", flex: 1, display: "flex", justifyContent: "space-between", gap: "16px", alignItems: "flex-start" }}>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b" }}>{p.phase}</div>
+                <div style={{ fontSize: "0.82rem", color: "#475569", marginTop: "4px", lineHeight: 1.4 }}>{p.deliverables}</div>
+              </div>
+              <div style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", color: "white", borderRadius: "20px", padding: "4px 12px", fontSize: "0.75rem", fontWeight: 700, whiteSpace: "nowrap", flexShrink: 0 }}>
+                {p.duration}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 // ─── Chart Components (rendered after Chart.js loads) ─────────────────────────
 
@@ -119,9 +297,29 @@ function LineChart({ labels, datasets, title }: { labels: string[]; datasets: { 
 
 // ─── Main Component ────────────────────────────────────────────────────────────
 
+const THEME_ACCENTS: Record<string, { primary: string; secondary: string; coverBg: string; dots: string }> = {
+  indigo: { primary: "#4F46E5", secondary: "#7C3AED", coverBg: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", dots: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" },
+  emerald: { primary: "#10B981", secondary: "#059669", coverBg: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)", dots: "linear-gradient(90deg, #10B981, #059669, #34D399, #3B82F6)" },
+  sunset: { primary: "#F59E0B", secondary: "#D97706", coverBg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #451a03 100%)", dots: "linear-gradient(90deg, #F59E0B, #D97706, #FBBF24, #10B981)" },
+  rose: { primary: "#E11D48", secondary: "#BE123C", coverBg: "linear-gradient(135deg, #4c0519 0%, #881337 50%, #4c0519 100%)", dots: "linear-gradient(90deg, #E11D48, #BE123C, #F43F5E, #EC4899)" },
+  navy: { primary: "#1E3A8A", secondary: "#2563EB", coverBg: "linear-gradient(135deg, #030712 0%, #172554 50%, #030712 100%)", dots: "linear-gradient(90deg, #1E3A8A, #2563EB, #60A5FA, #7C3AED)" },
+  obsidian: { primary: "#111827", secondary: "#374151", coverBg: "linear-gradient(135deg, #030712 0%, #1f2937 50%, #030712 100%)", dots: "linear-gradient(90deg, #111827, #374151, #4B5563, #9CA3AF)" }
+};
+
 export default function ProposalPreview() {
   const params = useParams();
   const id = parseInt(params.id!);
+
+  const [selectedTheme, setSelectedTheme] = useState<string>("indigo");
+
+  useEffect(() => {
+    const saved = localStorage.getItem(`proposal_theme_${id}`);
+    if (saved) {
+      setSelectedTheme(saved);
+    }
+  }, [id]);
+
+  const themeColors = THEME_ACCENTS[selectedTheme] || THEME_ACCENTS.indigo;
 
   const { data: proposal, isLoading } = useGetProposal(id, {
     query: { enabled: !!id, queryKey: getGetProposalQueryKey(id) }
@@ -171,9 +369,16 @@ export default function ProposalPreview() {
   };
 
   const accentColors: Record<string, string> = {
-    executiveSummary: "#4F46E5", aboutCompany: "#7C3AED", projectOverview: "#0EA5E9",
-    features: "#10B981", technologyStack: "#F59E0B", pricing: "#EF4444",
-    digitalMarketing: "#8B5CF6", addOns: "#EC4899", legalTerms: "#6B7280", acceptanceSection: "#059669"
+    executiveSummary: themeColors.primary, 
+    aboutCompany: themeColors.secondary, 
+    projectOverview: themeColors.primary,
+    features: themeColors.primary, 
+    technologyStack: themeColors.secondary, 
+    pricing: themeColors.primary,
+    digitalMarketing: themeColors.secondary, 
+    addOns: themeColors.primary, 
+    legalTerms: "#6B7280", 
+    acceptanceSection: themeColors.secondary
   };
 
   const activeSections = sectionOrder.filter(k => enabledSections[k] !== false && sections[k]);
@@ -234,7 +439,7 @@ export default function ProposalPreview() {
             <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{activeSections.length} sections • {format(new Date(proposal.projectDate || new Date()), "MMM d, yyyy")}</span>
             <button
               onClick={() => window.print()}
-              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: "linear-gradient(135deg, #4F46E5, #7C3AED)", color: "white", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", boxShadow: "0 4px 14px rgba(79,70,229,0.4)" }}
+              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: themeColors.primary, color: "white", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", boxShadow: `0 4px 14px ${themeColors.primary}40` }}
             >
               <Printer style={{ width: "15px", height: "15px" }} />
               Export PDF
@@ -251,15 +456,15 @@ export default function ProposalPreview() {
         ══════════════════════════════════════════════════════════════ */}
         <div className="section-page" style={{ borderRadius: "16px", overflow: "hidden", marginBottom: "12px", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
           {/* Top color band */}
-          <div style={{ height: "8px", background: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" }} />
+          <div style={{ height: "8px", background: themeColors.dots }} />
 
           {/* Cover body */}
-          <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", minHeight: "680px", padding: "60px 72px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+          <div style={{ background: themeColors.coverBg, minHeight: "680px", padding: "60px 72px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
             {/* Blur blobs */}
             {[
-              { top: "-80px", right: "-80px", size: "400px", color: "rgba(79,70,229,0.3)" },
-              { bottom: "-100px", left: "-60px", size: "350px", color: "rgba(124,58,237,0.2)" },
-              { top: "40%", left: "55%", size: "250px", color: "rgba(236,72,153,0.15)" }
+              { top: "-80px", right: "-80px", size: "400px", color: themeColors.primary + "40" },
+              { bottom: "-100px", left: "-60px", size: "350px", color: themeColors.secondary + "30" },
+              { top: "40%", left: "55%", size: "250px", color: themeColors.secondary + "20" }
             ].map((b: any, i) => (
               <div key={i} style={{ position: "absolute", borderRadius: "50%", background: b.color, filter: "blur(80px)", width: b.size, height: b.size, top: b.top, bottom: b.bottom, left: b.left, right: b.right, pointerEvents: "none" }} />
             ))}
@@ -281,9 +486,9 @@ export default function ProposalPreview() {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 2, paddingTop: "48px" }}>
               {/* Accent line */}
               <div style={{ display: "flex", gap: "6px", marginBottom: "28px" }}>
-                <div style={{ width: "48px", height: "4px", background: "#4F46E5", borderRadius: "2px" }} />
-                <div style={{ width: "24px", height: "4px", background: "#7C3AED", borderRadius: "2px" }} />
-                <div style={{ width: "12px", height: "4px", background: "#EC4899", borderRadius: "2px" }} />
+                <div style={{ width: "48px", height: "4px", background: themeColors.primary, borderRadius: "2px" }} />
+                <div style={{ width: "24px", height: "4px", background: themeColors.secondary, borderRadius: "2px" }} />
+                <div style={{ width: "12px", height: "4px", background: themeColors.secondary + "80", borderRadius: "2px" }} />
               </div>
               <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "16px", fontWeight: 500 }}>
                 CONFIDENTIAL BUSINESS PROPOSAL
@@ -328,7 +533,7 @@ export default function ProposalPreview() {
           </div>
 
           {/* Bottom color band */}
-          <div style={{ height: "5px", background: "linear-gradient(90deg, #F59E0B, #EC4899, #7C3AED, #4F46E5)" }} />
+          <div style={{ height: "5px", background: themeColors.dots }} />
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
@@ -337,7 +542,7 @@ export default function ProposalPreview() {
         <div className="section-page" style={{ borderRadius: "16px", marginBottom: "12px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", padding: "64px 72px" }}>
           {/* TOC Header */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "40px" }}>
-            <div style={{ width: "6px", height: "48px", background: "linear-gradient(180deg, #4F46E5, #EC4899)", borderRadius: "3px" }} />
+            <div style={{ width: "6px", height: "48px", background: `linear-gradient(180deg, ${themeColors.primary}, ${themeColors.secondary})`, borderRadius: "3px" }} />
             <div>
               <div style={{ fontSize: "0.65rem", color: "#94a3b8", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "4px" }}>Navigation</div>
               <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "2.2rem", fontWeight: 800, color: "#1e293b" }}>Table of Contents</div>
@@ -360,7 +565,7 @@ export default function ProposalPreview() {
           </div>
 
           {/* Company Highlights Banner */}
-          <div style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", borderRadius: "16px", padding: "36px", color: "white" }}>
+          <div style={{ background: themeColors.coverBg, borderRadius: "16px", padding: "36px", color: "white" }}>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", fontWeight: 800, marginBottom: "28px" }}>
               Why TechVision Solutions?
             </div>
@@ -465,30 +670,40 @@ export default function ProposalPreview() {
                   </div>
                 </div>
               )}
+              {key === "projectOverview" && (
+                <div style={{ padding: "0 64px 48px" }}>
+                  <ArchitectureDiagram markdown={sections[key]} />
+                  <TimelineVisual markdown={sections[key]} />
+                </div>
+              )}
 
               {key === "technologyStack" && (
                 <div style={{ padding: "0 64px 48px" }}>
-                  <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "32px", border: "1px solid #f1f5f9" }}>
-                    <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b", marginBottom: "24px" }}>🔧 Tech Stack Architecture</div>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
-                      {[
-                        { layer: "Frontend", tech: "React / Next.js", color: "#0EA5E9", icon: "⚛️" },
-                        { layer: "Backend", tech: "Node.js / Express", color: "#10B981", icon: "🔙" },
-                        { layer: "Database", tech: "PostgreSQL / Redis", color: "#F59E0B", icon: "🗄️" },
-                        { layer: "Cloud", tech: "AWS / GCP", color: "#EF4444", icon: "☁️" },
-                        { layer: "Mobile", tech: "React Native", color: "#8B5CF6", icon: "📱" },
-                        { layer: "Security", tech: "SSL / OAuth 2.0", color: "#6B7280", icon: "🔒" },
-                        { layer: "DevOps", tech: "Docker / CI-CD", color: "#EC4899", icon: "🚀" },
-                        { layer: "AI/ML", tech: "OpenAI / TensorFlow", color: "#4F46E5", icon: "🤖" }
-                      ].map((t, i) => (
-                        <div key={i} style={{ background: "white", borderRadius: "10px", padding: "16px 14px", border: `1px solid ${t.color}30`, borderTop: `3px solid ${t.color}` }}>
-                          <div style={{ fontSize: "1.3rem", marginBottom: "8px" }}>{t.icon}</div>
-                          <div style={{ fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{t.layer}</div>
-                          <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#1e293b" }}>{t.tech}</div>
-                        </div>
-                      ))}
+                  {parseTechTable(sections[key]) ? (
+                    <TechStackVisual markdown={sections[key]} />
+                  ) : (
+                    <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "32px", border: "1px solid #f1f5f9" }}>
+                      <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b", marginBottom: "24px" }}>🔧 Tech Stack Architecture</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px" }}>
+                        {[
+                          { layer: "Frontend", tech: "React / Next.js", color: "#0EA5E9", icon: "⚛️" },
+                          { layer: "Backend", tech: "Node.js / Express", color: "#10B981", icon: "🔙" },
+                          { layer: "Database", tech: "PostgreSQL / Redis", color: "#F59E0B", icon: "🗄️" },
+                          { layer: "Cloud", tech: "AWS / GCP", color: "#EF4444", icon: "☁️" },
+                          { layer: "Mobile", tech: "React Native", color: "#8B5CF6", icon: "📱" },
+                          { layer: "Security", tech: "SSL / OAuth 2.0", color: "#6B7280", icon: "🔒" },
+                          { layer: "DevOps", tech: "Docker / CI-CD", color: "#EC4899", icon: "🚀" },
+                          { layer: "AI/ML", tech: "OpenAI / TensorFlow", color: "#4F46E5", icon: "🤖" }
+                        ].map((t, i) => (
+                          <div key={i} style={{ background: "white", borderRadius: "10px", padding: "16px 14px", border: `1px solid ${t.color}30`, borderTop: `3px solid ${t.color}` }}>
+                            <div style={{ fontSize: "1.3rem", marginBottom: "8px" }}>{t.icon}</div>
+                            <div style={{ fontSize: "0.65rem", color: "#94a3b8", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "4px" }}>{t.layer}</div>
+                            <div style={{ fontWeight: 700, fontSize: "0.82rem", color: "#1e293b" }}>{t.tech}</div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -549,19 +764,19 @@ export default function ProposalPreview() {
             FINAL PAGE — THANK YOU + SIGNATURE
         ══════════════════════════════════════════════════════════════ */}
         <div className="section-page" style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
-          <div style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)", padding: "80px 72px", position: "relative", overflow: "hidden" }}>
+          <div style={{ background: themeColors.coverBg, padding: "80px 72px", position: "relative", overflow: "hidden" }}>
             {/* Blobs */}
-            <div style={{ position: "absolute", top: "-100px", right: "-80px", width: "450px", height: "450px", borderRadius: "50%", background: "rgba(79,70,229,0.2)", filter: "blur(80px)", pointerEvents: "none" }} />
-            <div style={{ position: "absolute", bottom: "-80px", left: "-60px", width: "380px", height: "380px", borderRadius: "50%", background: "rgba(124,58,237,0.15)", filter: "blur(70px)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", top: "-100px", right: "-80px", width: "450px", height: "450px", borderRadius: "50%", background: themeColors.primary + "30", filter: "blur(80px)", pointerEvents: "none" }} />
+            <div style={{ position: "absolute", bottom: "-80px", left: "-60px", width: "380px", height: "380px", borderRadius: "50%", background: themeColors.secondary + "20", filter: "blur(70px)", pointerEvents: "none" }} />
 
             <div style={{ position: "relative", zIndex: 2 }}>
               {/* Gradient accent */}
-              <div style={{ width: "80px", height: "4px", background: "linear-gradient(90deg, #4F46E5, #EC4899)", borderRadius: "2px", margin: "0 auto 40px" }} />
+              <div style={{ width: "80px", height: "4px", background: `linear-gradient(90deg, ${themeColors.primary}, ${themeColors.secondary})`, borderRadius: "2px", margin: "0 auto 40px" }} />
 
               <div style={{ textAlign: "center", maxWidth: "600px", margin: "0 auto" }}>
                 <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "3rem", color: "white", lineHeight: 1.15, marginBottom: "20px" }}>
                   Let's Build Something<br />
-                  <span style={{ background: "linear-gradient(90deg, #818cf8, #c084fc, #f472b6)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  <span style={{ background: `linear-gradient(90deg, ${themeColors.primary}, ${themeColors.secondary}, #f472b6)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                     Extraordinary Together.
                   </span>
                 </div>
@@ -588,7 +803,7 @@ export default function ProposalPreview() {
                 </div>
 
                 {/* Validity notice */}
-                <div style={{ background: "rgba(79,70,229,0.2)", border: "1px solid rgba(79,70,229,0.4)", borderRadius: "10px", padding: "14px 20px", marginBottom: "40px" }}>
+                <div style={{ background: themeColors.primary + "20", border: `1px solid ${themeColors.primary}50`, borderRadius: "10px", padding: "14px 20px", marginBottom: "40px" }}>
                   <span style={{ fontSize: "0.82rem", color: "rgba(255,255,255,0.75)" }}>
                     ⏳ This proposal is valid for <strong style={{ color: "white" }}>30 days</strong> from the date of issue.
                   </span>
@@ -611,7 +826,7 @@ export default function ProposalPreview() {
               </div>
             </div>
           </div>
-          <div style={{ height: "6px", background: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" }} />
+          <div style={{ height: "6px", background: themeColors.dots }} />
         </div>
 
       </div>

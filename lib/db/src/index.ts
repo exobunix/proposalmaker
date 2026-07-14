@@ -1,34 +1,83 @@
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import * as schema from "./schema";
-import path from "path";
-import fs from "fs";
+import mongoose, { Schema } from "mongoose";
 
-function findWorkspaceRoot(startDir: string): string {
-  let dir = startDir;
-  while (dir !== path.parse(dir).root) {
-    if (fs.existsSync(path.join(dir, "pnpm-workspace.yaml"))) {
-      return dir;
-    }
-    dir = path.dirname(dir);
+// Load MongoDB connection URI
+let mongodbUri = process.env.MONGODB_URI || process.env.DATABASE_URL;
+
+// Fallback to local MongoDB if not set or not a mongodb connection string
+if (!mongodbUri || !mongodbUri.startsWith("mongodb")) {
+  mongodbUri = "mongodb://127.0.0.1:27017/proposal-generator";
+}
+
+// Connect to MongoDB
+mongoose.connect(mongodbUri).catch((err) => {
+  console.error("MongoDB connection error:", err);
+});
+
+// Counter Schema for Auto-Incrementing Numeric IDs
+const CounterSchema = new Schema({
+  id: { type: String, required: true, unique: true },
+  seq: { type: Number, default: 0 },
+});
+
+export const Counter = mongoose.models.Counter || mongoose.model("Counter", CounterSchema);
+
+export async function getNextSequenceValue(sequenceName: string): Promise<number> {
+  const sequenceDocument = await Counter.findOneAndUpdate(
+    { id: sequenceName },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+  return sequenceDocument.seq;
+}
+
+// User Schema
+const UserSchema = new Schema(
+  {
+    id: { type: Number, unique: true },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+    password: { type: String, required: true },
+    subscription: { type: String, default: "free" },
+  },
+  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" } }
+);
+
+// Pre-save hook to auto-increment User ID
+UserSchema.pre("save", async function (next) {
+  if (this.isNew && !this.id) {
+    this.id = await getNextSequenceValue("userId");
   }
-  return startDir;
-}
+  next();
+});
 
-// Dynamically resolve workspace root relative to current working directory
-const workspaceRoot = findWorkspaceRoot(process.cwd());
-const defaultDbPath = path.join(workspaceRoot, "artifacts/api-server/local.db");
+export const User = mongoose.models.User || mongoose.model("User", UserSchema);
 
-let databaseUrl = process.env.DATABASE_URL;
+// Proposal Schema
+const ProposalSchema = new Schema(
+  {
+    id: { type: Number, unique: true },
+    userId: { type: Number, required: true },
+    clientName: { type: String, required: true },
+    projectName: { type: String, required: true },
+    projectDate: { type: String, required: true },
+    clientIndustry: { type: String, required: true },
+    projectType: { type: String, required: true },
+    budgetRange: { type: String, required: true },
+    logoUrl: { type: String },
+    contactDetails: { type: String },
+    signatureUrl: { type: String },
+    status: { type: String, default: "draft" },
+    sections: { type: Schema.Types.Mixed },
+    enabledSections: { type: Schema.Types.Mixed },
+  },
+  { timestamps: { createdAt: "createdAt", updatedAt: "updatedAt" } }
+);
 
-// Ignore MongoDB connection strings in DATABASE_URL
-if (!databaseUrl || databaseUrl.startsWith("mongodb")) {
-  databaseUrl = `file:${defaultDbPath}`;
-}
+// Pre-save hook to auto-increment Proposal ID
+ProposalSchema.pre("save", async function (next) {
+  if (this.isNew && !this.id) {
+    this.id = await getNextSequenceValue("proposalId");
+  }
+  next();
+});
 
-const dbPath = databaseUrl.replace(/^file:/, "");
-
-export const sqlite = new Database(dbPath);
-export const db = drizzle(sqlite, { schema });
-
-export * from "./schema";
+export const Proposal = mongoose.models.Proposal || mongoose.model("Proposal", ProposalSchema);

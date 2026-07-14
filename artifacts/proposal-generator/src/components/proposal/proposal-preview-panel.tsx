@@ -334,7 +334,9 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
         projectName: proposal.projectName,
         clientIndustry: proposal.clientIndustry,
         projectType: proposal.projectType,
-        budgetRange: proposal.budgetRange
+        budgetRange: proposal.budgetRange,
+        additionalContext: proposal.additionalContext,
+        contactDetails: proposal.contactDetails
       }
     });
   };

@@ -61,18 +61,11 @@ async function generateGeminiContent(systemPrompt: string, prompt: string): Prom
 
 router.use(requireAuth);
 
-const COMPANY_INFO = `
-Company Name: TechVision Solutions
-Founded: 2015
-Headquarters: New York, NY
-Services: Custom Software Development, Mobile App Development, SaaS Platforms, E-Commerce Solutions, Digital Transformation, Cloud Infrastructure, AI/ML Integration
-Team Size: 50+ professionals
-Expertise: Full-stack development, AI/ML integration, scalable cloud architecture, enterprise software, real-time systems, performance optimization
-Notable Clients: Fortune 500 companies and fast-growing startups across healthcare, fintech, retail, and logistics sectors
-Awards: Top IT Consulting Firm 2023, Best Digital Transformation Partner 2022, ISO 27001 Certified
-`;
+function buildSystemPrompt(contactDetails?: string | null): string {
+  const providerDetails = contactDetails 
+    ? `Use the following contact/firm details for the Service Provider (the company proposing the solution): ${contactDetails}`
+    : `The Service Provider (the company proposing the solution) details are not explicitly provided. You should dynamically generate a highly professional and realistic IT consulting/service provider name (e.g. based on the project domain, like 'DevSync Solutions' or 'AeroApps Technologies') and corresponding company background for the 'About Us' section. Never hardcode 'TechVision Solutions' unless it is appropriate.`;
 
-function buildSystemPrompt(): string {
   return `You are an expert senior business proposal writer and digital consultant working for a premium IT firm.
 
 Your proposals are renowned for being:
@@ -92,7 +85,8 @@ FORMATTING RULES (strictly follow these):
 - Use bullet points for features, capabilities, or benefits
 - Always end sections with a strong value statement or transition
 
-Company information for "About Us" sections: ${COMPANY_INFO}`;
+Service Provider / Proposing Company Details:
+${providerDetails}`;
 }
 
 function buildSectionPrompts(
@@ -101,10 +95,12 @@ function buildSectionPrompts(
   clientName: string,
   projectName: string,
   budgetRange?: string | null,
-  additionalContext?: string | null
+  additionalContext?: string | null,
+  contactDetails?: string | null
 ): Record<string, string> {
   const budget = budgetRange ? `Budget range: ${budgetRange}.` : "";
   const extra = additionalContext ? `\n\nAdditional Instructions from client: ${additionalContext}` : "";
+  const providerInfo = contactDetails ? `Proposing firm (Service Provider) info and contact details: ${contactDetails}` : "Proposing firm name: Determine dynamically (or use a realistic custom name matching the project type).";
 
   return {
     executiveSummary: `Write a comprehensive, detailed Executive Summary for a ${projectType} proposal for "${clientName}" in the ${clientIndustry} industry. Project name: "${projectName}". ${budget}
@@ -678,10 +674,11 @@ router.post("/generate-content", async (req, res) => {
     projectName,
     budgetRange,
     additionalContext,
+    contactDetails,
   } = parsed.data;
 
   const sectionPrompts = buildSectionPrompts(
-    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext
+    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails
   );
 
   const prompt =
@@ -689,7 +686,7 @@ router.post("/generate-content", async (req, res) => {
     `Write a highly detailed, comprehensive ${section} section for a ${projectType} proposal for ${clientName} in the ${clientIndustry} industry. Project: ${projectName}. Use markdown formatting with headings, subheadings, bullet points and tables. Minimum 400 words.`;
 
   try {
-    const content = await generateGeminiContent(buildSystemPrompt(), prompt);
+    const content = await generateGeminiContent(buildSystemPrompt(contactDetails), prompt);
     res.json({ content });
   } catch (err: any) {
     req.log.error({ err }, "Failed to generate content");
@@ -703,11 +700,11 @@ router.post("/generate-full-proposal", async (req, res) => {
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const { projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext } =
+  const { projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails } =
     parsed.data;
 
   const sectionPrompts = buildSectionPrompts(
-    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext
+    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails
   );
 
   try {
@@ -716,7 +713,7 @@ router.post("/generate-full-proposal", async (req, res) => {
       prompt: string
     ): Promise<string> => {
       try {
-        return await generateGeminiContent(buildSystemPrompt(), prompt);
+        return await generateGeminiContent(buildSystemPrompt(contactDetails), prompt);
       } catch (sectionErr: any) {
         req.log.error({ sectionErr, sectionName }, "Failed to generate section");
         return `Failed to generate this section. Error: ${sectionErr.message || sectionErr}. Please try generating this section individually using the AI button.`;

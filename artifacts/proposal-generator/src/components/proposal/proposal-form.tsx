@@ -176,6 +176,7 @@ export function ProposalForm({ proposal, isNew, selectedTheme, onThemeChange }: 
       projectType: values.projectType,
       budgetRange: values.budgetRange,
       additionalContext: values.additionalContext,
+      contactDetails: values.contactDetails,
     };
 
     const defaultEnabledSections = {

@@ -177,6 +177,7 @@ export const GenerateProposalContentBody = zod.object({
   projectName: zod.string(),
   budgetRange: zod.string().nullish(),
   additionalContext: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
 });
 
 export const GenerateProposalContentResponse = zod.object({
@@ -193,6 +194,7 @@ export const GenerateFullProposalBody = zod.object({
   projectName: zod.string(),
   budgetRange: zod.string().nullish(),
   additionalContext: zod.string().nullish(),
+  contactDetails: zod.string().nullish(),
 });
 
 export const GenerateFullProposalResponse = zod.object({

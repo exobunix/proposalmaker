@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { openai } from "@workspace/integrations-openai-ai-server";
 import {
   GenerateProposalContentBody,
   GenerateFullProposalBody,
@@ -10,6 +9,55 @@ import {
 import { requireAuth } from "../../middlewares/auth";
 
 const router = Router();
+
+async function generateGeminiContent(systemPrompt: string, prompt: string): Promise<string> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY environment variable is not set");
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ],
+      systemInstruction: {
+        parts: [
+          {
+            text: systemPrompt
+          }
+        ]
+      },
+      generationConfig: {
+        maxOutputTokens: 4096,
+        temperature: 0.7
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API returned error status ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json() as any;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) {
+    throw new Error("Invalid response format from Gemini API");
+  }
+  return content;
+}
 
 router.use(requireAuth);
 
@@ -641,17 +689,7 @@ router.post("/generate-content", async (req, res) => {
     `Write a highly detailed, comprehensive ${section} section for a ${projectType} proposal for ${clientName} in the ${clientIndustry} industry. Project: ${projectName}. Use markdown formatting with headings, subheadings, bullet points and tables. Minimum 400 words.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_completion_tokens: 4096,
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        { role: "user", content: prompt },
-      ],
-    });
-
-    const content =
-      response.choices[0]?.message?.content ?? "Content generation failed.";
+    const content = await generateGeminiContent(buildSystemPrompt(), prompt);
     res.json({ content });
   } catch (err: any) {
     req.log.error({ err }, "Failed to generate content");
@@ -678,18 +716,7 @@ router.post("/generate-full-proposal", async (req, res) => {
       prompt: string
     ): Promise<string> => {
       try {
-        const response = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          max_completion_tokens: 4096,
-          messages: [
-            { role: "system", content: buildSystemPrompt() },
-            { role: "user", content: prompt },
-          ],
-        });
-        return (
-          response.choices[0]?.message?.content ??
-          `${sectionName} content generation failed.`
-        );
+        return await generateGeminiContent(buildSystemPrompt(), prompt);
       } catch (sectionErr: any) {
         req.log.error({ sectionErr, sectionName }, "Failed to generate section");
         return `Failed to generate this section. Error: ${sectionErr.message || sectionErr}. Please try generating this section individually using the AI button.`;
@@ -750,20 +777,8 @@ router.post("/rewrite", async (req, res) => {
     `Rewrite this content in a ${tone} tone while maintaining all detail and depth.`;
 
   try {
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      max_completion_tokens: 4096,
-      messages: [
-        { role: "system", content: buildSystemPrompt() },
-        {
-          role: "user",
-          content: `${toneInstruction}\n\nSection: ${section}\n\nOriginal content:\n${content}`,
-        },
-      ],
-    });
-
-    const rewritten =
-      response.choices[0]?.message?.content ?? "Rewrite failed.";
+    const prompt = `${toneInstruction}\n\nSection: ${section}\n\nOriginal content:\n${content}`;
+    const rewritten = await generateGeminiContent(buildSystemPrompt(), prompt);
     res.json({ content: rewritten });
   } catch (err) {
     req.log.error({ err }, "Failed to rewrite content");

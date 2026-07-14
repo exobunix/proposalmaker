@@ -17,6 +17,8 @@ async function generateGeminiContent(systemPrompt: string, prompt: string): Prom
   }
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
+  const combinedPrompt = `${systemPrompt}\n\nUser Request / Prompt:\n${prompt}`;
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -27,18 +29,11 @@ async function generateGeminiContent(systemPrompt: string, prompt: string): Prom
         {
           parts: [
             {
-              text: prompt
+              text: combinedPrompt
             }
           ]
         }
       ],
-      systemInstruction: {
-        parts: [
-          {
-            text: systemPrompt
-          }
-        ]
-      },
       generationConfig: {
         maxOutputTokens: 4096,
         temperature: 0.7

@@ -16,6 +16,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -430,7 +431,7 @@ export function ProposalForm({ proposal, isNew, selectedTheme, onThemeChange }: 
             <div className="border-t border-border pt-6 space-y-4">
               <h3 className="text-sm font-mono text-muted-foreground uppercase tracking-wider">Design & Style</h3>
               <div className="space-y-2">
-                <FormLabel>Proposal Color Theme</FormLabel>
+                <Label>Proposal Color Theme</Label>
                 <Select onValueChange={onThemeChange} value={selectedTheme}>
                   <SelectTrigger className="bg-background">
                     <SelectValue placeholder="Select theme" />

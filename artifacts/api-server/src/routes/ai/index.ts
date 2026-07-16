@@ -7,6 +7,7 @@ import {
 } from "@workspace/api-zod";
 
 import { requireAuth } from "../../middlewares/auth";
+import { generateMockFullProposal } from "../../lib/mock-generator";
 
 const router = Router();
 
@@ -241,11 +242,24 @@ Return JSON keys matching section names.
 
     res.json(compiledSections);
   } catch (err: any) {
-    req.log.error({ err }, "Failed to generate full proposal");
-    res.status(500).json({
-      error: "AI content generation failed",
-      details: err?.message || String(err),
-    });
+    req.log.error({ err }, "Failed to generate full proposal using AI, falling back to consulting template generator");
+    try {
+      const fallbackData = generateMockFullProposal(
+        clientName,
+        projectName,
+        clientIndustry,
+        projectType,
+        budgetRange,
+        additionalContext,
+        contactDetails
+      );
+      res.json(fallbackData);
+    } catch (fallbackErr: any) {
+      res.status(500).json({
+        error: "AI content generation failed and fallback failed",
+        details: fallbackErr?.message || String(fallbackErr),
+      });
+    }
   }
 });
 
@@ -281,8 +295,22 @@ You MUST return a JSON object with keys "type" (one of: rich-text, grid-cards, t
     const content = await generateGeminiJson(buildSystemPrompt(), singleSectionPrompt);
     res.json({ content: JSON.stringify(content) });
   } catch (err: any) {
-    req.log.error({ err }, "Failed to generate content");
-    res.status(500).json({ error: "AI content generation failed", details: err?.message });
+    req.log.error({ err }, "Failed to generate content using AI, falling back to mock generator");
+    try {
+      const fallbackData = generateMockFullProposal(
+        clientName,
+        projectName,
+        clientIndustry,
+        projectType,
+        budgetRange,
+        additionalContext,
+        contactDetails
+      );
+      const sectionContent = fallbackData[section] || { type: "rich-text", content: `### ${section}\n\nFallback content template.` };
+      res.json({ content: JSON.stringify(sectionContent) });
+    } catch (fallbackErr: any) {
+      res.status(500).json({ error: "AI content generation failed and fallback failed", details: fallbackErr?.message });
+    }
   }
 });
 

@@ -1,7 +1,9 @@
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, FileText, CheckCircle2, ChevronRight, Zap, Target, Star, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function Landing() {
   const { user } = useAuth();
@@ -15,8 +17,32 @@ export default function Landing() {
     }
   };
 
+  const [mousePos, setMousePos] = useState({ x: -100, y: -100 });
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePos({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col justify-between">
+      {/* Dynamic Cursor Spotlight */}
+      <div 
+        style={{
+          position: "fixed",
+          top: mousePos.y - 150,
+          left: mousePos.x - 150,
+          width: "300px",
+          height: "300px",
+          borderRadius: "50%",
+          background: "radial-gradient(circle, rgba(245, 158, 11, 0.12) 0%, rgba(245, 158, 11, 0) 70%)",
+          pointerEvents: "none",
+          zIndex: 1,
+          transition: "transform 0.15s ease-out"
+        }}
+      />
       {/* Background Gradients */}
       <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-amber-500/10 rounded-full blur-3xl -z-10 dark:bg-amber-950/10" />
       <div className="absolute bottom-10 right-1/4 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-3xl -z-10 dark:bg-amber-950/5" />
@@ -49,9 +75,13 @@ export default function Landing() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <main className="flex-1 flex flex-col items-center">
-        <section className="px-6 pt-20 pb-16 text-center max-w-4xl mx-auto flex flex-col items-center space-y-6">
+      <main className="flex-1 w-full flex flex-col items-center">
+        <motion.section 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="px-6 pt-20 pb-16 text-center max-w-5xl mx-auto flex flex-col items-center space-y-6 z-10"
+        >
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-500 text-xs font-semibold uppercase tracking-wider mb-2">
             <Zap className="h-3.5 w-3.5" /> Generates proposals in minutes
           </div>
@@ -73,7 +103,21 @@ export default function Landing() {
           <p className="text-xs text-muted-foreground">
             No credit card required • Generate up to 3 proposals for free
           </p>
-        </section>
+
+          {/* Centered Dashboard Mockup Image */}
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95, y: 40 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.8 }}
+            className="w-full max-w-4xl mt-12 border border-border/60 rounded-2xl overflow-hidden shadow-2xl bg-card/50 backdrop-blur-md p-2 group hover:border-amber-500/30 transition-all duration-500"
+          >
+            <img 
+              src="/proposal_builder_mockup.png" 
+              alt="AI Proposal Maker Dashboard Mockup" 
+              className="rounded-xl w-full object-cover transition-transform duration-700 group-hover:scale-[1.01]" 
+            />
+          </motion.div>
+        </motion.section>
 
         {/* Features Grid */}
         <section className="w-full max-w-6xl mx-auto px-6 py-12">

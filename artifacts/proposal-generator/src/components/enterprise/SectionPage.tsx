@@ -1,5 +1,6 @@
 import React from "react";
 import { useIndustryTheme, MotifBackground } from "./ThemeProvider";
+import { motion } from "framer-motion";
 
 interface SectionPageProps {
   id: string;
@@ -23,9 +24,14 @@ export const SectionPage: React.FC<SectionPageProps> = ({
   authorName
 }) => {
   const { theme } = useIndustryTheme();
+  const Component = isPrintMode ? "div" : motion.div;
 
   return (
-    <div
+    <Component
+      initial={isPrintMode ? undefined : { opacity: 0, y: 15 }}
+      whileInView={isPrintMode ? undefined : { opacity: 1, y: 0 }}
+      viewport={isPrintMode ? undefined : { once: true, margin: "-80px" }}
+      transition={isPrintMode ? undefined : { duration: 0.5, ease: "easeOut" }}
       id={`section-${id}`}
       style={{
         background: isPrintMode ? "#FFFFFF" : "white",
@@ -127,6 +133,6 @@ export const SectionPage: React.FC<SectionPageProps> = ({
           {sectionIndex} / {totalSections}
         </span>
       </div>
-    </div>
+    </Component>
   );
 };

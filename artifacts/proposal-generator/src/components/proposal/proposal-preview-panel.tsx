@@ -500,8 +500,7 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
         clientIndustry: proposal.clientIndustry,
         projectType: proposal.projectType,
         budgetRange: proposal.budgetRange,
-        additionalContext: proposal.additionalContext,
-        contactDetails: proposal.contactDetails
+        additionalContext: proposal.additionalContext
       }
     });
   };
@@ -568,7 +567,7 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
               clientName={proposal.clientName}
               projectName={proposal.projectName}
               projectDate={proposal.projectDate}
-              logoUrl={proposal.logoUrl}
+              logoUrl={proposal.logoUrl || undefined}
               authorName={proposal.contactDetails || undefined}
             />
           </div>

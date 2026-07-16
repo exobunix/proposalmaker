@@ -731,7 +731,7 @@ export default function ProposalPreview() {
             clientName={proposal.clientName}
             projectName={proposal.projectName}
             projectDate={proposal.projectDate}
-            logoUrl={proposal.logoUrl}
+            logoUrl={proposal.logoUrl || undefined}
             authorName={proposal.contactDetails || undefined}
           />
         </div>

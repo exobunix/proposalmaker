@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { ProposalForm } from "@/components/proposal/proposal-form";
 import { markdownToHtml } from "@/lib/markdown";
 import { CoverPage } from "@/components/enterprise/CoverPage";
@@ -249,8 +250,7 @@ export default function ProposalWorkspace() {
         clientIndustry: proposal.clientIndustry,
         projectType: proposal.projectType,
         budgetRange: proposal.budgetRange,
-        additionalContext: proposal.additionalContext,
-        contactDetails: proposal.contactDetails
+        additionalContext: proposal.additionalContext
       }
     });
   };

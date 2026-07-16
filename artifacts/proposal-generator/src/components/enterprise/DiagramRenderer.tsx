@@ -173,7 +173,7 @@ export const DiagramRenderer: React.FC<DiagramRendererProps> = ({ format, data }
 
   const renderDeployment = () => {
     return (
-      <div style={{ display: "flex", flexWrap: "wrap", justifyContext: "center", gap: "24px", marginTop: "32px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "24px", marginTop: "32px" }}>
         {data.map((node: any, idx: number) => (
           <div
             key={idx}

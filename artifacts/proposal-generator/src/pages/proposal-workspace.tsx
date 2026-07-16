@@ -16,10 +16,114 @@ import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import { ProposalForm } from "@/components/proposal/proposal-form";
-import { ProposalSectionRenderer } from "@/pages/proposal-preview";
+import { markdownToHtml } from "@/lib/markdown";
+import { CoverPage } from "@/components/enterprise/CoverPage";
+import { FeatureCard } from "@/components/enterprise/FeatureCard";
+import { Timeline } from "@/components/enterprise/Timeline";
+import { DiagramRenderer } from "@/components/enterprise/DiagramRenderer";
+import { ChartRenderer } from "@/components/enterprise/ChartRenderer";
 
 // Import visual blocks directly
 import { ArchitectureDiagram, TimelineVisual, TechStackVisual } from "@/components/proposal/proposal-preview-panel";
+
+function ProposalSectionRendererContent({ data }: { data: any }) {
+  const type = data.type || "rich-text";
+
+  switch (type) {
+    case "cover":
+      return (
+        <CoverPage
+          clientName={data.client || ""}
+          projectName={data.title || ""}
+          projectDate={data.date}
+        />
+      );
+
+    case "rich-text":
+      return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(data.content || data.html || "") }} />;
+
+    case "grid-cards":
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginTop: "20px" }}>
+          {data.cards?.map((card: any, idx: number) => (
+            <FeatureCard
+              key={idx}
+              title={card.title}
+              description={card.desc}
+              iconName={card.icon}
+              variant={card.variant || "info"}
+              statValue={card.statValue}
+            />
+          ))}
+        </div>
+      );
+
+    case "table":
+      return (
+        <div style={{ overflowX: "auto", marginTop: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            <thead>
+              <tr style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", color: "white" }}>
+                {data.headers?.map((h: string, idx: number) => (
+                  <th key={idx} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows?.map((row: any[], rIdx: number) => (
+                <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? "white" : "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+                  {row.map((cell: any, cIdx: number) => (
+                    <td key={cIdx} style={{ padding: "12px 16px", color: "#374151" }}>
+                      {typeof cell === "object" ? JSON.stringify(cell) : String(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
+    case "bullet-list":
+      return (
+        <ul style={{ paddingLeft: "24px", marginTop: "16px", listStyleType: "disc" }}>
+          {data.items?.map((item: string, idx: number) => (
+            <li key={idx} style={{ margin: "8px 0", fontSize: "0.93rem", color: "#374151", lineHeight: 1.6 }}>{item}</li>
+          ))}
+        </ul>
+      );
+
+    case "timeline":
+      return <Timeline items={data.items || []} />;
+
+    case "diagram-spec":
+      return <DiagramRenderer format={data.format} data={data.data} />;
+
+    case "chart-spec":
+      return <ChartRenderer type={data.chartType} data={data.data} title={data.title} />;
+
+    default:
+      return null;
+  }
+}
+
+function ProposalSectionRenderer({ sectionData }: { sectionData: any }) {
+  if (!sectionData) return null;
+
+  if (typeof sectionData === "string") {
+    try {
+      const parsed = JSON.parse(sectionData);
+      if (parsed && typeof parsed === "object") {
+        return <ProposalSectionRendererContent data={parsed} />;
+      }
+    } catch (_) {
+      // Ignore
+    }
+    return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(sectionData) }} />;
+  }
+
+  return <ProposalSectionRendererContent data={sectionData} />;
+}
 
 export default function ProposalWorkspace() {
   const params = useParams();

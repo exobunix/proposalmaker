@@ -62,7 +62,7 @@ function parseArchitecture(markdown: string) {
   return parsed;
 }
 
-function ArchitectureDiagram({ markdown }: { markdown: string }) {
+export function ArchitectureDiagram({ markdown }: { markdown: string }) {
   const layers = parseArchitecture(markdown);
   if (!layers) return null;
 
@@ -126,7 +126,7 @@ const techColors: Record<string, string> = {
   Backend: "#EF4444", Frontend: "#3B82F6", Mobile: "#8B5CF6", "Data & Messaging": "#F59E0B", "Platform & Security": "#EC4899", "Observability & Infra": "#10B981"
 };
 
-function TechStackVisual({ markdown }: { markdown: string }) {
+export function TechStackVisual({ markdown }: { markdown: string }) {
   const rows = parseTechTable(markdown);
   if (!rows) return null;
 
@@ -176,7 +176,7 @@ function parseTimelineTable(markdown: string) {
   return timelineRows.length > 0 ? timelineRows : null;
 }
 
-function TimelineVisual({ markdown }: { markdown: string }) {
+export function TimelineVisual({ markdown }: { markdown: string }) {
   const phases = parseTimelineTable(markdown);
   if (!phases) return null;
 

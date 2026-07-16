@@ -53,8 +53,8 @@ function AppRouter() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/proposals/new" component={ProposalWorkspace} />
-        <Route path="/proposals/:id" component={ProposalWorkspace} />
         <Route path="/proposals/:id/preview" component={ProposalPreview} />
+        <Route path="/proposals/:id" component={ProposalWorkspace} />
         <Route>
           <Redirect to="/" />
         </Route>

@@ -309,7 +309,7 @@ function LineChart({ labels, datasets, title }: { labels: string[]; datasets: { 
 
 // ─── Section Renderer for Structured JSON ─────────────────────────────────────
 
-function ProposalSectionRenderer({ sectionData }: { sectionData: any }) {
+export function ProposalSectionRenderer({ sectionData }: { sectionData: any }) {
   if (!sectionData) return null;
 
   // Handle old string format (markdown)

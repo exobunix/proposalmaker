@@ -8,7 +8,7 @@ interface CustomSvgIconProps {
 }
 
 export const CustomSvgIcon: React.FC<CustomSvgIconProps> = ({ name, color, size = 24 }) => {
-  const normName = name.toLowerCase();
+  const normName = (name || "settings").toLowerCase();
 
   const getSvgContent = () => {
     switch (normName) {

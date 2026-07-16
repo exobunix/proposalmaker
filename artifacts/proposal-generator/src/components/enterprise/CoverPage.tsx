@@ -16,7 +16,13 @@ export const CoverPage: React.FC<CoverPageProps> = ({
   logoUrl
 }) => {
   const { theme } = useIndustryTheme();
-  const dateStr = format(new Date(projectDate || new Date()), "MMMM d, yyyy");
+  let dateStr = "";
+  try {
+    const d = projectDate ? new Date(projectDate) : new Date();
+    dateStr = isNaN(d.getTime()) ? format(new Date(), "MMMM d, yyyy") : format(d, "MMMM d, yyyy");
+  } catch (e) {
+    dateStr = format(new Date(), "MMMM d, yyyy");
+  }
 
   return (
     <div

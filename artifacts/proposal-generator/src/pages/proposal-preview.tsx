@@ -435,6 +435,15 @@ export default function ProposalPreview() {
   const params = useParams();
   const id = parseInt(params.id!);
 
+  const getFormattedDate = (dateVal: any) => {
+    try {
+      const d = dateVal ? new Date(dateVal) : new Date();
+      return isNaN(d.getTime()) ? format(new Date(), "MMM d, yyyy") : format(d, "MMM d, yyyy");
+    } catch (e) {
+      return format(new Date(), "MMM d, yyyy");
+    }
+  };
+
   // Parse query parameters
   const searchParams = new URLSearchParams(window.location.search);
   const tokenParam = searchParams.get("token");
@@ -668,7 +677,7 @@ export default function ProposalPreview() {
               </div>
             </div>
             <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-              <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{activeSections.length} sections • {format(new Date(proposal.projectDate || new Date()), "MMM d, yyyy")}</span>
+              <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{activeSections.length} sections • {getFormattedDate(proposal.projectDate)}</span>
               <button
                 onClick={() => setShowExportModal(true)}
                 style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: themeColors.primary, color: "white", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", boxShadow: `0 4px 14px ${themeColors.primary}40` }}

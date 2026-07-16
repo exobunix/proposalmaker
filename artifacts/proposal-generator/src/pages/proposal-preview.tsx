@@ -732,6 +732,7 @@ export default function ProposalPreview() {
             projectName={proposal.projectName}
             projectDate={proposal.projectDate}
             logoUrl={proposal.logoUrl}
+            authorName={proposal.contactDetails || undefined}
           />
         </div>
 
@@ -809,6 +810,7 @@ export default function ProposalPreview() {
               sectionTitle={sectionTitles[key]}
               emoji={sectionEmojis[key]}
               isPrintMode={isPrintMode}
+              authorName={proposal.contactDetails || undefined}
             >
               <ProposalSectionRenderer sectionData={sections[key]} />
 
@@ -978,7 +980,7 @@ export default function ProposalPreview() {
                     <div style={{ fontSize: "0.62rem", color: "rgba(255,255,255,0.4)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "12px" }}>Authorized By</div>
                     <div style={{ height: "56px", borderBottom: "1px solid rgba(255,255,255,0.2)", marginBottom: "8px" }} />
                     <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)" }}>Signature & Date</div>
-                    <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.9)", fontSize: "0.9rem", marginTop: "8px" }}>TechVision Solutions</div>
+                    <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.9)", fontSize: "0.9rem", marginTop: "8px" }}>{proposal.contactDetails || "TechVision Solutions"}</div>
                   </div>
                 </div>
 

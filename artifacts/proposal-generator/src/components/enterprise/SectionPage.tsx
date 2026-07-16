@@ -9,6 +9,7 @@ interface SectionPageProps {
   emoji?: string;
   children: React.ReactNode;
   isPrintMode?: boolean;
+  authorName?: string;
 }
 
 export const SectionPage: React.FC<SectionPageProps> = ({
@@ -18,7 +19,8 @@ export const SectionPage: React.FC<SectionPageProps> = ({
   sectionTitle,
   emoji,
   children,
-  isPrintMode = false
+  isPrintMode = false,
+  authorName
 }) => {
   const { theme } = useIndustryTheme();
 
@@ -119,7 +121,7 @@ export const SectionPage: React.FC<SectionPageProps> = ({
         }}
       >
         <span style={{ fontSize: "0.65rem", color: "#94a3b8" }}>
-          © TechVision Solutions — Proprietary & Confidential
+          © {authorName || "TechVision Solutions"} — Proprietary & Confidential
         </span>
         <span style={{ fontSize: "0.7rem", fontWeight: 700, color: theme.primary }}>
           {sectionIndex} / {totalSections}

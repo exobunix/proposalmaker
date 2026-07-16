@@ -569,6 +569,7 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
               projectName={proposal.projectName}
               projectDate={proposal.projectDate}
               logoUrl={proposal.logoUrl}
+              authorName={proposal.contactDetails || undefined}
             />
           </div>
 
@@ -704,7 +705,7 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4">
                   <div className="text-[9px] text-white/40 uppercase tracking-widest mb-4">Authorized By</div>
                   <div className="h-10 border-b border-white/20 mb-2" />
-                  <div className="text-white/80 font-bold">TechVision Solutions</div>
+                  <div className="text-white/80 font-bold">{proposal.contactDetails || "TechVision Solutions"}</div>
                 </div>
               </div>
             </div>

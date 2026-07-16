@@ -7,13 +7,15 @@ interface CoverPageProps {
   projectName: string;
   projectDate?: string;
   logoUrl?: string;
+  authorName?: string;
 }
 
 export const CoverPage: React.FC<CoverPageProps> = ({
   clientName,
   projectName,
   projectDate,
-  logoUrl
+  logoUrl,
+  authorName
 }) => {
   const { theme } = useIndustryTheme();
   let dateStr = "";
@@ -48,7 +50,7 @@ export const CoverPage: React.FC<CoverPageProps> = ({
           <img src={logoUrl} alt="Logo" style={{ height: "45px", objectFit: "contain" }} />
         ) : (
           <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 900, fontSize: "1.4rem", letterSpacing: "2px" }}>
-            TECHVISION SOLUTIONS
+            {(authorName || "TechVision Solutions").toUpperCase()}
           </div>
         )}
         <div

@@ -111,8 +111,198 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Pricing/Subscription Section */}
-        <section className="w-full bg-muted/30 border-y border-border/40 py-20 px-6">
+        {/* ── 1. THE 11-STAGE AI PIPELINE BLUEPRINT ── */}
+        <section className="w-full bg-muted/20 border-y border-border/40 py-20 px-6">
+          <div className="max-w-6xl mx-auto text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">The 11-Stage Intelligent Strategy Pipeline</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Our backend runs your inputs through a multi-tier strategy analysis to output consulting-grade results.
+            </p>
+          </div>
+          <div className="max-w-5xl mx-auto grid md:grid-cols-4 gap-6">
+            {[
+              { num: "01", title: "Requirement Analysis", desc: "Extracts key project scopes, deliverables, and boundaries." },
+              { num: "02", title: "Industry Detection", desc: "Maps the project to one of 11 premium dynamic theme palettes." },
+              { num: "03", title: "Competitor Intelligence", desc: "Searches and highlights industry differentiator strategies." },
+              { num: "04", title: "Technical Blueprinting", desc: "Constructs modular database models, user flows, and API endpoints." }
+            ].map((s, i) => (
+              <div key={i} className="bg-card border border-border/50 rounded-2xl p-6 relative">
+                <span className="text-4xl font-black text-amber-500/20 absolute top-4 right-4">{s.num}</span>
+                <h3 className="font-bold text-base mb-2 mt-4">{s.title}</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 2. PREMIUM INDUSTRY STYLES SHOWCASE ── */}
+        <section className="w-full py-20 px-6 max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">11 Sector-Specific Premium Themes</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Every proposal is mapped to a dynamic, bespoke design palette with custom motifs.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { name: "Fintech", color: "bg-emerald-600", desc: "Clean financial meshes" },
+              { name: "Healthcare", color: "bg-cyan-600", desc: "Medical vector layouts" },
+              { name: "Technology", color: "bg-indigo-600", desc: "Modern abstract meshes" },
+              { name: "Real Estate", color: "bg-amber-600", desc: "Warm corporate solids" },
+              { name: "Construction", color: "bg-yellow-600", desc: "Industrial grid lattices" },
+              { name: "Agriculture", color: "bg-green-700", desc: "Organic fluid motifs" },
+              { name: "Restaurant", color: "bg-rose-600", desc: "Bold warm interfaces" },
+              { name: "IoT & Smart Cities", color: "bg-blue-600", desc: "Tech grid networks" }
+            ].map((t, i) => (
+              <div key={i} className="border border-border/50 bg-card/50 rounded-xl p-4 flex items-center gap-3">
+                <div className={`w-4 h-4 rounded-full ${t.color} shrink-0`} />
+                <div>
+                  <div className="font-bold text-sm">{t.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{t.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── 3. INTERACTIVE ROI SAVINGS CALCULATOR ── */}
+        <section className="w-full bg-gradient-to-br from-amber-500/5 to-transparent border-y border-border/40 py-20 px-6">
+          <div className="max-w-4xl mx-auto bg-card border border-border/50 rounded-3xl p-8 md:p-12 shadow-xl">
+            <div className="text-center space-y-4 mb-10">
+              <h2 className="text-3xl font-extrabold tracking-tight">Estimate Your Savings</h2>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                How much time and money does Proposa AI save you? Enter your metrics to see the impact.
+              </p>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8 items-center">
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-sm font-semibold block">Proposals written per month</label>
+                  <input 
+                    type="range" 
+                    min="1" 
+                    max="30" 
+                    defaultValue="5" 
+                    id="propRange" 
+                    className="w-full accent-amber-500" 
+                    onChange={(e) => {
+                      const count = parseInt(e.target.value);
+                      const outputCount = document.getElementById("outputCount");
+                      const outputHours = document.getElementById("outputHours");
+                      const outputDollars = document.getElementById("outputDollars");
+                      if (outputCount) outputCount.innerText = String(count);
+                      if (outputHours) outputHours.innerText = String(count * 6);
+                      if (outputDollars) outputDollars.innerText = String(count * 6 * 75);
+                    }}
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>1 Proposal</span>
+                    <span className="font-bold text-foreground"><span id="outputCount">5</span> Proposals</span>
+                    <span>30 Proposals</span>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  * Assumes an average manual writing time of 6 hours per proposal at a professional rate of $75/hour.
+                </p>
+              </div>
+              <div className="bg-muted/40 border border-border/40 rounded-2xl p-6 text-center space-y-4">
+                <div>
+                  <div className="text-sm font-mono text-muted-foreground uppercase">Hours Saved / Month</div>
+                  <div className="text-4xl font-black text-amber-600 mt-1"><span id="outputHours">30</span> Hours</div>
+                </div>
+                <div>
+                  <div className="text-sm font-mono text-muted-foreground uppercase">Value Reclaimed</div>
+                  <div className="text-4xl font-black text-amber-600 mt-1">$<span id="outputDollars">2250</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 4. ENTERPRISE LAYOUT BLOCKS & DIAGRAMS ── */}
+        <section className="w-full py-20 px-6 max-w-6xl mx-auto">
+          <div className="text-center space-y-4 mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Deloitte-Grade Layouts & Diagrams</h2>
+            <p className="text-muted-foreground max-w-xl mx-auto">
+              Never present plain paragraphs. Our engine automatically outputs premium layouts and vector graphics.
+            </p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
+              <div className="h-24 bg-muted/30 rounded-xl flex items-center justify-center text-3xl">📊</div>
+              <h3 className="font-bold text-lg">Integrated Recharts</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Renders interactive ROI estimation bars, milestone Gantts, package values, and risk heatmaps.
+              </p>
+            </div>
+            <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
+              <div className="h-24 bg-muted/30 rounded-xl flex items-center justify-center text-3xl">🔄</div>
+              <h3 className="font-bold text-lg">Auto-Vector Diagrams</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Outputs flowcharts detailing user registration authentication, data submits, and API pipelines.
+              </p>
+            </div>
+            <div className="bg-card border border-border/50 rounded-2xl p-6 space-y-4">
+              <div className="h-24 bg-muted/30 rounded-xl flex items-center justify-center text-3xl">⚡</div>
+              <h3 className="font-bold text-lg">Premium Visual Cards</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Wraps objectives, features, and methodologies in stylized Callouts, Stats cards, and Info grids.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 5. SECURITY & CONFIDENTIALITY COMPLIANCE ── */}
+        <section className="w-full bg-muted/20 border-y border-border/40 py-20 px-6">
+          <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+            <div className="space-y-6">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 dark:text-amber-500">
+                <Shield className="h-6 w-6" />
+              </div>
+              <h2 className="text-3xl font-extrabold tracking-tight">Security & Compliance Safeguards</h2>
+              <p className="text-muted-foreground leading-relaxed">
+                Your company IP and customer requirements are strictly protected. We adhere to robust cloud isolation protocols to guarantee confidentiality:
+              </p>
+              <ul className="space-y-3 text-sm">
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                  <span>AES-256 data encryption at rest and TLS 1.3 in transit.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                  <span>Strict zero-data-retention policy for corporate LLM interfaces.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4.5 w-4.5 text-amber-600 shrink-0" />
+                  <span>Role-based authorization gates securing PDF download signatures.</span>
+                </li>
+              </ul>
+            </div>
+            <div className="bg-card border border-border/50 rounded-3xl p-8 space-y-6">
+              <h3 className="font-bold text-lg">Confidentiality Guarantee</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                We guarantee that your proposal text, pricing figures, and client lists will never be used for training public models. Every instance is sandbox-isolated.
+              </p>
+              <div className="border-t border-border pt-6 flex items-center gap-4">
+                <div className="text-center shrink-0">
+                  <div className="text-xl font-bold">100%</div>
+                  <div className="text-[10px] text-muted-foreground">Private</div>
+                </div>
+                <div className="text-center shrink-0">
+                  <div className="text-xl font-bold">256-Bit</div>
+                  <div className="text-[10px] text-muted-foreground">Encrypted</div>
+                </div>
+                <div className="text-center shrink-0">
+                  <div className="text-xl font-bold">SOC-2</div>
+                  <div className="text-[10px] text-muted-foreground">Compliant</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── 6. DETAILED PRICING PLANS ── */}
+        <section className="w-full py-20 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center space-y-4 mb-16">
               <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight">Simple, Transparent Plans</h2>
@@ -222,10 +412,35 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        {/* ── 7. FREQUENTLY ASKED QUESTIONS (FAQ) ── */}
+        <section className="w-full bg-muted/10 border-t border-border/40 py-20 px-6">
+          <div className="max-w-4xl mx-auto space-y-12">
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl font-extrabold tracking-tight">Frequently Asked Questions</h2>
+              <p className="text-muted-foreground text-sm">
+                Everything you need to know about our visual proposal generation platform.
+              </p>
+            </div>
+            <div className="space-y-6">
+              {[
+                { q: "How does the AI generate structural flowcharts and charts?", a: "Our AI Strategy Pipeline outputs structural JSON data describing node connection indexes. These are mapped in real-time on your frontend into vector SVGs and responsive Recharts widgets, ensuring clear layouts and crisp printing." },
+                { q: "Can I download print-ready PDFs?", a: "Yes. Our export system triggers a server-side Puppeteer engine that outputs A4/Letter size documents with perfect page margins, embedded fonts, and clickable Table of Contents." },
+                { q: "Is my client details data confidential?", a: "Absolutely. We enforce sandbox isolation and strict zero-retention parameters, ensuring that your inputs, custom details, and compiled statistics are never shared or used to train public LLM models." },
+                { q: "Can I customize the authoring company name?", a: "Yes. When editing or creating a proposal, you can fill in the 'Proposal Generated By' field with your name or business, which dynamically overrides the TechVision default values on the cover page and footer." }
+              ].map((faq, i) => (
+                <div key={i} className="bg-card border border-border/50 rounded-2xl p-6">
+                  <h4 className="font-bold text-base mb-2 text-foreground">{faq.q}</h4>
+                  <p className="text-sm text-muted-foreground leading-relaxed">{faq.a}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border/40 py-8 text-center text-sm text-muted-foreground relative z-10 px-6">
+      <footer className="border-t border-border/40 py-8 text-center text-sm text-muted-foreground relative z-10 px-6 bg-card">
         <p>© {new Date().getFullYear()} Proposa AI. Premium Client Proposals Made Simple.</p>
       </footer>
     </div>

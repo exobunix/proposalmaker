@@ -9,6 +9,7 @@ import {
   DuplicateProposalParams,
 } from "@workspace/api-zod";
 import { requireAuth, type AuthenticatedRequest } from "../../middlewares/auth";
+import { generateProposalPdf } from "../../lib/pdf-service";
 
 const router = Router();
 
@@ -65,16 +66,48 @@ router.post("/", async (req: AuthenticatedRequest, res) => {
     }
 
     const defaultEnabledSections = {
+      coverPage: true,
+      confidentialPage: true,
       executiveSummary: true,
-      aboutCompany: true,
-      projectOverview: true,
-      features: true,
+      businessUnderstanding: true,
+      currentChallenges: true,
+      painPoints: true,
+      businessObjectives: true,
+      proposedSolution: true,
+      whyThisSolution: true,
+      systemOverview: true,
+      architectureDiagram: true,
+      userFlow: true,
       technologyStack: true,
-      pricing: true,
-      digitalMarketing: true,
-      addOns: true,
-      legalTerms: true,
-      acceptanceSection: true,
+      projectModules: true,
+      features: true,
+      functionalRequirements: true,
+      nonFunctionalRequirements: true,
+      databaseDesign: true,
+      apiArchitecture: true,
+      security: true,
+      aiIntegration: true,
+      thirdPartyIntegrations: true,
+      developmentMethodology: true,
+      sprintPlanning: true,
+      timeline: true,
+      milestones: true,
+      teamStructure: true,
+      testingStrategy: true,
+      deployment: true,
+      hosting: true,
+      maintenance: true,
+      support: true,
+      training: true,
+      costEstimation: true,
+      paymentMilestones: true,
+      futureEnhancements: true,
+      riskAnalysis: true,
+      termsConditions: true,
+      acceptanceCriteria: true,
+      warranty: true,
+      thankYou: true,
+      signaturePage: true,
     };
 
     const proposal = await Proposal.create({
@@ -206,6 +239,51 @@ router.post("/:id/duplicate", async (req: AuthenticatedRequest, res) => {
   } catch (err) {
     req.log.error({ err }, "Failed to duplicate proposal");
     res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+router.get("/:id/pdf", async (req: AuthenticatedRequest, res) => {
+  const proposalId = Number(req.params.id);
+  if (Number.isNaN(proposalId)) {
+    res.status(400).json({ error: "Invalid ID" });
+    return;
+  }
+
+  const format = req.query.format === "Letter" ? "Letter" : "A4";
+  const theme = typeof req.query.theme === "string" ? req.query.theme : "indigo";
+
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    res.status(401).json({ error: "Authorization token required" });
+    return;
+  }
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const proposal = await Proposal.findOne({ id: proposalId, userId: req.user!.id }).lean() as any;
+    if (!proposal) {
+      res.status(404).json({ error: "Proposal not found" });
+      return;
+    }
+
+    const pdfBuffer = await generateProposalPdf({
+      proposalId,
+      token,
+      format,
+      theme,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="proposal-${proposalId}-${proposal.clientName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf"`
+    );
+    res.send(pdfBuffer);
+    return;
+  } catch (err) {
+    req.log.error({ err }, "Failed to generate proposal PDF");
+    res.status(500).json({ error: "Internal server error" });
+    return;
   }
 });
 

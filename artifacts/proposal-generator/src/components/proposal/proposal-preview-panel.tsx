@@ -23,6 +23,13 @@ import { markdownToHtml } from "@/lib/markdown";
 
 import { format } from "date-fns";
 import { useEffect, useRef } from "react";
+import { ThemeProvider, useIndustryTheme } from "@/components/enterprise/ThemeProvider";
+import { CoverPage } from "@/components/enterprise/CoverPage";
+import { SectionPage } from "@/components/enterprise/SectionPage";
+import { FeatureCard } from "@/components/enterprise/FeatureCard";
+import { Timeline } from "@/components/enterprise/Timeline";
+import { DiagramRenderer } from "@/components/enterprise/DiagramRenderer";
+import { ChartRenderer } from "@/components/enterprise/ChartRenderer";
 
 // ─── Custom Parser Helpers & Components ────────────────────────────────────────
 
@@ -201,7 +208,121 @@ function TimelineVisual({ markdown }: { markdown: string }) {
   );
 }
 
+// ─── Section Renderer for Structured JSON ─────────────────────────────────────
+
+function ProposalSectionRenderer({ sectionData }: { sectionData: any }) {
+  if (!sectionData) return null;
+
+  // Handle old string format (markdown)
+  if (typeof sectionData === "string") {
+    try {
+      const parsed = JSON.parse(sectionData);
+      if (parsed && typeof parsed === "object") {
+        return <ProposalSectionRendererContent data={parsed} />;
+      }
+    } catch (_) {
+      // Ignore and render as markdown
+    }
+    return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(sectionData) }} />;
+  }
+
+  // Handle new object format
+  return <ProposalSectionRendererContent data={sectionData} />;
+}
+
+function ProposalSectionRendererContent({ data }: { data: any }) {
+  const type = data.type || "rich-text";
+
+  switch (type) {
+    case "cover":
+      return (
+        <CoverPage
+          clientName={data.client || ""}
+          projectName={data.title || ""}
+          projectDate={data.date}
+        />
+      );
+
+    case "rich-text":
+      return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(data.content || data.html || "") }} />;
+
+    case "grid-cards":
+      return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          {data.cards?.map((card: any, idx: number) => (
+            <FeatureCard
+              key={idx}
+              title={card.title}
+              description={card.desc}
+              iconName={card.icon}
+              variant={card.variant || "info"}
+              statValue={card.statValue}
+            />
+          ))}
+        </div>
+      );
+
+    case "table":
+      return (
+        <div className="overflow-x-auto mt-4 rounded-xl border border-slate-200 dark:border-slate-800">
+          <table className="width-full border-collapse text-xs">
+            <thead>
+              <tr className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white">
+                {data.headers?.map((h: string, idx: number) => (
+                  <th key={idx} className="p-3 text-left font-bold">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows?.map((row: any[], rIdx: number) => (
+                <tr key={rIdx} className={`${rIdx % 2 === 0 ? "bg-white dark:bg-slate-950" : "bg-slate-50/50 dark:bg-slate-900/20"} border-b border-slate-100 dark:border-slate-800`}>
+                  {row.map((cell: any, cIdx: number) => (
+                    <td key={cIdx} className="p-3 text-slate-600 dark:text-slate-400">
+                      {typeof cell === "object" ? JSON.stringify(cell) : String(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
+    case "bullet-list":
+      return (
+        <ul className="list-disc pl-5 mt-4 space-y-2 text-xs">
+          {data.items?.map((item: string, idx: number) => (
+            <li key={idx} className="text-slate-600 dark:text-slate-400 leading-relaxed">{item}</li>
+          ))}
+        </ul>
+      );
+
+    case "timeline":
+      return <Timeline items={data.items || []} />;
+
+    case "diagram-spec":
+      return <DiagramRenderer format={data.format} data={data.data} />;
+
+    case "chart-spec":
+      return <ChartRenderer type={data.chartType} data={data.data} title={data.title} />;
+
+    default:
+      return null;
+  }
+}
+
 const THEME_ACCENTS: Record<string, { primary: string; secondary: string; coverBg: string; dots: string }> = {
+  Healthcare: { primary: "#06B6D4", secondary: "#3B82F6", coverBg: "linear-gradient(135deg, #083344 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #06B6D4, #3B82F6, #60A5FA, #0891B2)" },
+  Fintech: { primary: "#10B981", secondary: "#4F46E5", coverBg: "linear-gradient(135deg, #064E3B 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #10B981, #4F46E5, #34D399, #6366F1)" },
+  "Real Estate": { primary: "#F59E0B", secondary: "#78350F", coverBg: "linear-gradient(135deg, #451A03 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #F59E0B, #78350F, #FBBF24, #D97706)" },
+  Legal: { primary: "#1E3A8A", secondary: "#B45309", coverBg: "linear-gradient(135deg, #030712 0%, #172554 100%)", dots: "linear-gradient(90deg, #1E3A8A, #B45309, #3B82F6, #D97706)" },
+  Education: { primary: "#8B5CF6", secondary: "#EC4899", coverBg: "linear-gradient(135deg, #2E1065 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #8B5CF6, #EC4899, #A78BFA, #F472B6)" },
+  Technology: { primary: "#4F46E5", secondary: "#7C3AED", coverBg: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)", dots: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" },
+  Manufacturing: { primary: "#4B5563", secondary: "#EA580C", coverBg: "linear-gradient(135deg, #111827 0%, #1F2937 100%)", dots: "linear-gradient(90deg, #4B5563, #EA580C, #9CA3AF, #F97316)" },
+  Agriculture: { primary: "#16A34A", secondary: "#854D0E", coverBg: "linear-gradient(135deg, #062F14 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #16A34A, #854D0E, #4ADE80, #A16207)" },
+  IoT: { primary: "#0891B2", secondary: "#10B981", coverBg: "linear-gradient(135deg, #164E63 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #0891B2, #10B981, #22D3EE, #34D399)" },
+  Restaurant: { primary: "#E11D48", secondary: "#D97706", coverBg: "linear-gradient(135deg, #4C0519 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #E11D48, #D97706, #F43F5E, #FBBF24)" },
+  Construction: { primary: "#EAB308", secondary: "#374151", coverBg: "linear-gradient(135deg, #422006 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #EAB308, #374151, #FDE047, #4B5563)" },
   indigo: { primary: "#4F46E5", secondary: "#7C3AED", coverBg: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", dots: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" },
   emerald: { primary: "#10B981", secondary: "#059669", coverBg: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)", dots: "linear-gradient(90deg, #10B981, #059669, #34D399, #3B82F6)" },
   sunset: { primary: "#F59E0B", secondary: "#D97706", coverBg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #451a03 100%)", dots: "linear-gradient(90deg, #F59E0B, #D97706, #FBBF24, #10B981)" },
@@ -216,28 +337,72 @@ interface ProposalPreviewPanelProps {
 }
 
 const SECTION_KEYS = [
-  'executiveSummary', 'aboutCompany', 'projectOverview', 'features', 
-  'technologyStack', 'pricing', 'digitalMarketing', 'addOns', 
-  'legalTerms', 'acceptanceSection'
+  "coverPage", "confidentialPage", "executiveSummary", "businessUnderstanding", "currentChallenges",
+  "painPoints", "businessObjectives", "proposedSolution", "whyThisSolution", "systemOverview",
+  "architectureDiagram", "userFlow", "technologyStack", "projectModules", "features",
+  "functionalRequirements", "nonFunctionalRequirements", "databaseDesign", "apiArchitecture", "security",
+  "aiIntegration", "thirdPartyIntegrations", "developmentMethodology", "sprintPlanning", "timeline",
+  "milestones", "teamStructure", "testingStrategy", "deployment", "hosting",
+  "maintenance", "support", "training", "costEstimation", "paymentMilestones",
+  "futureEnhancements", "riskAnalysis", "termsConditions", "acceptanceCriteria", "warranty",
+  "thankYou", "signaturePage"
 ];
 
 const SECTION_TITLES: Record<string, string> = {
+  coverPage: "Cover Page",
+  confidentialPage: "Confidentiality Agreement",
   executiveSummary: "Executive Summary",
-  aboutCompany: "About TechVision Solutions",
-  projectOverview: "Project Overview",
-  features: "Key Features & Modules",
+  businessUnderstanding: "Business Understanding",
+  currentChallenges: "Current Challenges",
+  painPoints: "Pain Points",
+  businessObjectives: "Business Objectives",
+  proposedSolution: "Proposed Solution",
+  whyThisSolution: "Why This Solution",
+  systemOverview: "System Overview",
+  architectureDiagram: "System Architecture Diagram",
+  userFlow: "User Journey & Flow",
   technologyStack: "Technology Stack",
-  pricing: "Investment & Pricing",
-  digitalMarketing: "Digital Marketing Strategy",
-  addOns: "Optional Add-On Services",
-  legalTerms: "Terms & Conditions",
-  acceptanceSection: "Acceptance & Agreement"
+  projectModules: "Project Modules",
+  features: "Key Features",
+  functionalRequirements: "Functional Requirements",
+  nonFunctionalRequirements: "Non-Functional Requirements",
+  databaseDesign: "Database Design Schema",
+  apiArchitecture: "API Architecture",
+  security: "Security Controls",
+  aiIntegration: "AI Integration Capabilities",
+  thirdPartyIntegrations: "Third-Party Integrations",
+  developmentMethodology: "Development Methodology",
+  sprintPlanning: "Sprint Planning",
+  timeline: "Project Timeline",
+  milestones: "Project Milestones",
+  teamStructure: "Project Team Structure",
+  testingStrategy: "Testing Strategy",
+  deployment: "Deployment Plan",
+  hosting: "Hosting Strategy",
+  maintenance: "Maintenance Plan",
+  support: "Support SLA",
+  training: "Training & Handover",
+  costEstimation: "Cost Estimation",
+  paymentMilestones: "Payment Milestones",
+  futureEnhancements: "Future Enhancements Roadmap",
+  riskAnalysis: "Risk Analysis & Mitigation",
+  termsConditions: "Terms & Conditions",
+  acceptanceCriteria: "Acceptance Criteria",
+  warranty: "Warranty & SLA Details",
+  thankYou: "Thank You Note",
+  signaturePage: "Signatures & Execution"
 };
 
 const SECTION_EMOJIS: Record<string, string> = {
-  executiveSummary: "📋", aboutCompany: "🏢", projectOverview: "🎯",
-  features: "⚡", technologyStack: "🔧", pricing: "💰",
-  digitalMarketing: "📈", addOns: "🚀", legalTerms: "⚖️", acceptanceSection: "✍️"
+  coverPage: "📖", confidentialPage: "🔒", executiveSummary: "📋", businessUnderstanding: "🏢", currentChallenges: "⚠️",
+  painPoints: "🔥", businessObjectives: "🎯", proposedSolution: "💡", whyThisSolution: "❓", systemOverview: "🌐",
+  architectureDiagram: "📐", userFlow: "🔄", technologyStack: "🔧", projectModules: "📦", features: "⚡",
+  functionalRequirements: "📝", nonFunctionalRequirements: "🛡️", databaseDesign: "🗄️", apiArchitecture: "🔌", security: "🔑",
+  aiIntegration: "🤖", thirdPartyIntegrations: "🧩", developmentMethodology: "🤝", sprintPlanning: "📅", timeline: "🗓️",
+  milestones: "🏆", teamStructure: "👥", testingStrategy: "🧪", deployment: "🚀", hosting: "☁️",
+  maintenance: "🛠️", support: "☎️", training: "🎓", costEstimation: "💰", paymentMilestones: "💳",
+  futureEnhancements: "🚀", riskAnalysis: "⚡", termsConditions: "⚖️", acceptanceCriteria: "✔️", warranty: "🛡️",
+  thankYou: "🙏", signaturePage: "✍️"
 };
 
 export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPreviewPanelProps) {
@@ -392,51 +557,19 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
 
       {/* ── DOCUMENT FLOW ── */}
       <ScrollArea className="flex-1 p-4 lg:p-8">
-        <div className="max-w-[760px] mx-auto space-y-6 pb-20">
+        <ThemeProvider industry={proposal.clientIndustry}>
+          <div className="max-w-[760px] mx-auto space-y-6 pb-20">
           
           {/* ══════════════════════════════════════════════════════════════
               COVER PAGE
           ══════════════════════════════════════════════════════════════ */}
           <div className="bg-card rounded-2xl border border-border shadow-md overflow-hidden">
-            <div style={{ height: "6px", background: themeColors.dots }} />
-            <div 
-              style={{ background: themeColors.coverBg }} 
-              className="min-h-[480px] p-12 relative overflow-hidden flex flex-col justify-between text-white"
-            >
-              {/* Blur blobs */}
-              <div className="absolute -top-12 -right-12 w-64 h-64 rounded-full filter blur-[60px] opacity-30" style={{ background: themeColors.primary }} />
-              <div className="absolute -bottom-12 -left-12 w-64 h-64 rounded-full filter blur-[60px] opacity-20" style={{ background: themeColors.secondary }} />
-
-              <div className="flex justify-between items-start z-10">
-                {proposal.logoUrl
-                  ? <img src={proposal.logoUrl} alt="Logo" style={{ height: "36px", objectFit: "contain" }} />
-                  : <div className="font-serif font-extrabold text-base tracking-widest">TECHVISION</div>}
-                <span className="text-[10px] text-white/50 tracking-wider font-mono">
-                  {format(new Date(proposal.projectDate || new Date()), "MMM d, yyyy")}
-                </span>
-              </div>
-
-              <div className="my-12 z-10 space-y-4">
-                <div className="flex gap-1.5">
-                  <div className="w-10 h-1" style={{ background: themeColors.primary }} />
-                  <div className="w-5 h-1" style={{ background: themeColors.secondary }} />
-                </div>
-                <div className="text-[9px] text-white/40 tracking-[4px] uppercase font-bold">CONFIDENTIAL BUSINESS PROPOSAL</div>
-                <h1 className="font-serif text-3xl font-extrabold leading-tight text-white">{proposal.clientName}</h1>
-                <p className="text-lg text-white/70 font-light">{proposal.projectName}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 border-t border-white/10 pt-6 z-10 text-xs">
-                <div>
-                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Prepared For</div>
-                  <div className="font-bold text-white/90 mt-1">{proposal.clientName}</div>
-                </div>
-                <div className="text-right">
-                  <div className="text-[9px] text-white/40 uppercase tracking-widest">Prepared By</div>
-                  <div className="font-bold text-white/90 mt-1">TechVision Solutions</div>
-                </div>
-              </div>
-            </div>
+            <CoverPage
+              clientName={proposal.clientName}
+              projectName={proposal.projectName}
+              projectDate={proposal.projectDate}
+              logoUrl={proposal.logoUrl}
+            />
           </div>
 
           {/* ══════════════════════════════════════════════════════════════
@@ -529,17 +662,14 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
                       </div>
                     ) : content ? (
                       <div className="space-y-6">
-                        <div
-                          className="prose prose-sm md:prose-base dark:prose-invert prose-headings:font-serif prose-p:font-sans prose-p:leading-relaxed max-w-none prose-p:text-slate-600 dark:prose-p:text-slate-400"
-                          dangerouslySetInnerHTML={{ __html: markdownToHtml(content) }}
-                        />
-                        {key === "projectOverview" && (
+                        <ProposalSectionRenderer sectionData={content} />
+                        {typeof content === "string" && key === "projectOverview" && (
                           <>
                             <ArchitectureDiagram markdown={content} />
                             <TimelineVisual markdown={content} />
                           </>
                         )}
-                        {key === "technologyStack" && (
+                        {typeof content === "string" && key === "technologyStack" && (
                           <TechStackVisual markdown={content} />
                         )}
                       </div>
@@ -581,8 +711,9 @@ export function ProposalPreviewPanel({ proposal, selectedTheme }: ProposalPrevie
           </div>
 
         </div>
-      </ScrollArea>
-    </div>
+      </ThemeProvider>
+    </ScrollArea>
+  </div>
   );
 }
 

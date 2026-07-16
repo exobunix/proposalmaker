@@ -1,16 +1,25 @@
 import { useParams, Link } from "wouter";
-import { useGetProposal, getGetProposalQueryKey } from "@workspace/api-client-react";
+import { useGetProposal, getGetProposalQueryKey, setAuthTokenGetter } from "@workspace/api-client-react";
 import { useEffect, useRef, useState } from "react";
 import { Loader2, ArrowLeft, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { markdownToHtml } from "@/lib/markdown";
+import { ThemeProvider, useIndustryTheme } from "@/components/enterprise/ThemeProvider";
+import { CoverPage } from "@/components/enterprise/CoverPage";
+import { SectionPage } from "@/components/enterprise/SectionPage";
+import { FeatureCard } from "@/components/enterprise/FeatureCard";
+import { Timeline } from "@/components/enterprise/Timeline";
+import { DiagramRenderer } from "@/components/enterprise/DiagramRenderer";
+import { ChartRenderer } from "@/components/enterprise/ChartRenderer";
 
 declare global {
   interface Window {
     Chart: any;
   }
 }
+
+const isPrintModeGlobal = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("print") === "true";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -224,6 +233,7 @@ function BarChartSection({ labels, values, title, color }: { labels: string[]; v
       },
       options: {
         responsive: true,
+        animation: isPrintModeGlobal ? false : undefined,
         plugins: { legend: { display: false } },
         scales: {
           y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
@@ -249,6 +259,7 @@ function DoughnutChart({ labels, values, colors, title }: { labels: string[]; va
       },
       options: {
         responsive: true,
+        animation: isPrintModeGlobal ? false : undefined,
         cutout: "70%",
         plugins: {
           legend: { position: "bottom", labels: { padding: 16, font: { size: 11 } } }
@@ -283,6 +294,7 @@ function LineChart({ labels, datasets, title }: { labels: string[]; datasets: { 
       },
       options: {
         responsive: true,
+        animation: isPrintModeGlobal ? false : undefined,
         plugins: { legend: { position: "bottom" } },
         scales: {
           y: { beginAtZero: true, grid: { color: "#f1f5f9" } },
@@ -295,9 +307,122 @@ function LineChart({ labels, datasets, title }: { labels: string[]; datasets: { 
   return <canvas ref={ref} style={{ maxHeight: "240px" }} />;
 }
 
+// ─── Section Renderer for Structured JSON ─────────────────────────────────────
+
+function ProposalSectionRenderer({ sectionData }: { sectionData: any }) {
+  if (!sectionData) return null;
+
+  // Handle old string format (markdown)
+  if (typeof sectionData === "string") {
+    try {
+      const parsed = JSON.parse(sectionData);
+      if (parsed && typeof parsed === "object") {
+        return <ProposalSectionRendererContent data={parsed} />;
+      }
+    } catch (_) {
+      // Ignore and render as markdown
+    }
+    return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(sectionData) }} />;
+  }
+
+  // Handle new object format
+  return <ProposalSectionRendererContent data={sectionData} />;
+}
+
+function ProposalSectionRendererContent({ data }: { data: any }) {
+  const type = data.type || "rich-text";
+
+  switch (type) {
+    case "cover":
+      return (
+        <CoverPage
+          clientName={data.client || ""}
+          projectName={data.title || ""}
+          projectDate={data.date}
+        />
+      );
+
+    case "rich-text":
+      return <div dangerouslySetInnerHTML={{ __html: markdownToHtml(data.content || data.html || "") }} />;
+
+    case "grid-cards":
+      return (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "20px", marginTop: "20px" }}>
+          {data.cards?.map((card: any, idx: number) => (
+            <FeatureCard
+              key={idx}
+              title={card.title}
+              description={card.desc}
+              iconName={card.icon}
+              variant={card.variant || "info"}
+              statValue={card.statValue}
+            />
+          ))}
+        </div>
+      );
+
+    case "table":
+      return (
+        <div style={{ overflowX: "auto", marginTop: "20px", borderRadius: "12px", border: "1px solid #e2e8f0" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.88rem" }}>
+            <thead>
+              <tr style={{ background: "linear-gradient(135deg, #4F46E5, #7C3AED)", color: "white" }}>
+                {data.headers?.map((h: string, idx: number) => (
+                  <th key={idx} style={{ padding: "12px 16px", textAlign: "left", fontWeight: 600 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows?.map((row: any[], rIdx: number) => (
+                <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? "white" : "#f8fafc", borderBottom: "1px solid #f1f5f9" }}>
+                  {row.map((cell: any, cIdx: number) => (
+                    <td key={cIdx} style={{ padding: "12px 16px", color: "#374151" }}>
+                      {typeof cell === "object" ? JSON.stringify(cell) : String(cell)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
+    case "bullet-list":
+      return (
+        <ul style={{ paddingLeft: "24px", marginTop: "16px", listStyleType: "disc" }}>
+          {data.items?.map((item: string, idx: number) => (
+            <li key={idx} style={{ margin: "8px 0", fontSize: "0.93rem", color: "#374151", lineHeight: 1.6 }}>{item}</li>
+          ))}
+        </ul>
+      );
+
+    case "timeline":
+      return <Timeline items={data.items || []} />;
+
+    case "diagram-spec":
+      return <DiagramRenderer format={data.format} data={data.data} />;
+
+    case "chart-spec":
+      return <ChartRenderer type={data.chartType} data={data.data} title={data.title} />;
+
+    default:
+      return null;
+  }
+}
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const THEME_ACCENTS: Record<string, { primary: string; secondary: string; coverBg: string; dots: string }> = {
+  Healthcare: { primary: "#06B6D4", secondary: "#3B82F6", coverBg: "linear-gradient(135deg, #083344 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #06B6D4, #3B82F6, #60A5FA, #0891B2)" },
+  Fintech: { primary: "#10B981", secondary: "#4F46E5", coverBg: "linear-gradient(135deg, #064E3B 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #10B981, #4F46E5, #34D399, #6366F1)" },
+  "Real Estate": { primary: "#F59E0B", secondary: "#78350F", coverBg: "linear-gradient(135deg, #451A03 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #F59E0B, #78350F, #FBBF24, #D97706)" },
+  Legal: { primary: "#1E3A8A", secondary: "#B45309", coverBg: "linear-gradient(135deg, #030712 0%, #172554 100%)", dots: "linear-gradient(90deg, #1E3A8A, #B45309, #3B82F6, #D97706)" },
+  Education: { primary: "#8B5CF6", secondary: "#EC4899", coverBg: "linear-gradient(135deg, #2E1065 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #8B5CF6, #EC4899, #A78BFA, #F472B6)" },
+  Technology: { primary: "#4F46E5", secondary: "#7C3AED", coverBg: "linear-gradient(135deg, #0F172A 0%, #1E1B4B 100%)", dots: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" },
+  Manufacturing: { primary: "#4B5563", secondary: "#EA580C", coverBg: "linear-gradient(135deg, #111827 0%, #1F2937 100%)", dots: "linear-gradient(90deg, #4B5563, #EA580C, #9CA3AF, #F97316)" },
+  Agriculture: { primary: "#16A34A", secondary: "#854D0E", coverBg: "linear-gradient(135deg, #062F14 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #16A34A, #854D0E, #4ADE80, #A16207)" },
+  IoT: { primary: "#0891B2", secondary: "#10B981", coverBg: "linear-gradient(135deg, #164E63 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #0891B2, #10B981, #22D3EE, #34D399)" },
+  Restaurant: { primary: "#E11D48", secondary: "#D97706", coverBg: "linear-gradient(135deg, #4C0519 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #E11D48, #D97706, #F43F5E, #FBBF24)" },
+  Construction: { primary: "#EAB308", secondary: "#374151", coverBg: "linear-gradient(135deg, #422006 0%, #0F172A 100%)", dots: "linear-gradient(90deg, #EAB308, #374151, #FDE047, #4B5563)" },
   indigo: { primary: "#4F46E5", secondary: "#7C3AED", coverBg: "linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)", dots: "linear-gradient(90deg, #4F46E5, #7C3AED, #EC4899, #F59E0B)" },
   emerald: { primary: "#10B981", secondary: "#059669", coverBg: "linear-gradient(135deg, #022c22 0%, #064e3b 50%, #022c22 100%)", dots: "linear-gradient(90deg, #10B981, #059669, #34D399, #3B82F6)" },
   sunset: { primary: "#F59E0B", secondary: "#D97706", coverBg: "linear-gradient(135deg, #451a03 0%, #78350f 50%, #451a03 100%)", dots: "linear-gradient(90deg, #F59E0B, #D97706, #FBBF24, #10B981)" },
@@ -310,14 +435,29 @@ export default function ProposalPreview() {
   const params = useParams();
   const id = parseInt(params.id!);
 
-  const [selectedTheme, setSelectedTheme] = useState<string>("indigo");
+  // Parse query parameters
+  const searchParams = new URLSearchParams(window.location.search);
+  const tokenParam = searchParams.get("token");
+  const isPrintMode = searchParams.get("print") === "true";
+  const printFormat = searchParams.get("format") || "A4";
+  const themeParam = searchParams.get("theme");
+
+  if (tokenParam) {
+    setAuthTokenGetter(() => tokenParam);
+  }
+
+  const [selectedTheme, setSelectedTheme] = useState<string>(themeParam || "indigo");
 
   useEffect(() => {
-    const saved = localStorage.getItem(`proposal_theme_${id}`);
-    if (saved) {
-      setSelectedTheme(saved);
+    if (themeParam) {
+      setSelectedTheme(themeParam);
+    } else {
+      const saved = localStorage.getItem(`proposal_theme_${id}`);
+      if (saved) {
+        setSelectedTheme(saved);
+      }
     }
-  }, [id]);
+  }, [id, themeParam]);
 
   const themeColors = THEME_ACCENTS[selectedTheme] || THEME_ACCENTS.indigo;
 
@@ -344,47 +484,133 @@ export default function ProposalPreview() {
   const enabledSections = (proposal.enabledSections || {}) as Record<string, boolean>;
 
   const sectionOrder = [
-    "executiveSummary", "aboutCompany", "projectOverview", "features",
-    "technologyStack", "pricing", "digitalMarketing", "addOns",
-    "legalTerms", "acceptanceSection"
+    "coverPage", "confidentialPage", "executiveSummary", "businessUnderstanding", "currentChallenges",
+    "painPoints", "businessObjectives", "proposedSolution", "whyThisSolution", "systemOverview",
+    "architectureDiagram", "userFlow", "technologyStack", "projectModules", "features",
+    "functionalRequirements", "nonFunctionalRequirements", "databaseDesign", "apiArchitecture", "security",
+    "aiIntegration", "thirdPartyIntegrations", "developmentMethodology", "sprintPlanning", "timeline",
+    "milestones", "teamStructure", "testingStrategy", "deployment", "hosting",
+    "maintenance", "support", "training", "costEstimation", "paymentMilestones",
+    "futureEnhancements", "riskAnalysis", "termsConditions", "acceptanceCriteria", "warranty",
+    "thankYou", "signaturePage"
   ];
 
   const sectionTitles: Record<string, string> = {
+    coverPage: "Cover Page",
+    confidentialPage: "Confidentiality Agreement",
     executiveSummary: "Executive Summary",
-    aboutCompany: "About TechVision Solutions",
-    projectOverview: "Project Overview",
-    features: "Key Features & Modules",
+    businessUnderstanding: "Business Understanding",
+    currentChallenges: "Current Challenges",
+    painPoints: "Pain Points",
+    businessObjectives: "Business Objectives",
+    proposedSolution: "Proposed Solution",
+    whyThisSolution: "Why This Solution",
+    systemOverview: "System Overview",
+    architectureDiagram: "System Architecture Diagram",
+    userFlow: "User Journey & Flow",
     technologyStack: "Technology Stack",
-    pricing: "Investment & Pricing",
-    digitalMarketing: "Digital Marketing Strategy",
-    addOns: "Optional Add-On Services",
-    legalTerms: "Terms & Conditions",
-    acceptanceSection: "Acceptance & Agreement"
+    projectModules: "Project Modules",
+    features: "Key Features",
+    functionalRequirements: "Functional Requirements",
+    nonFunctionalRequirements: "Non-Functional Requirements",
+    databaseDesign: "Database Design Schema",
+    apiArchitecture: "API Architecture",
+    security: "Security Controls",
+    aiIntegration: "AI Integration Capabilities",
+    thirdPartyIntegrations: "Third-Party Integrations",
+    developmentMethodology: "Development Methodology",
+    sprintPlanning: "Sprint Planning",
+    timeline: "Project Timeline",
+    milestones: "Project Milestones",
+    teamStructure: "Project Team Structure",
+    testingStrategy: "Testing Strategy",
+    deployment: "Deployment Plan",
+    hosting: "Hosting Strategy",
+    maintenance: "Maintenance Plan",
+    support: "Support SLA",
+    training: "Training & Handover",
+    costEstimation: "Cost Estimation",
+    paymentMilestones: "Payment Milestones",
+    futureEnhancements: "Future Enhancements Roadmap",
+    riskAnalysis: "Risk Analysis & Mitigation",
+    termsConditions: "Terms & Conditions",
+    acceptanceCriteria: "Acceptance Criteria",
+    warranty: "Warranty & SLA Details",
+    thankYou: "Thank You Note",
+    signaturePage: "Signatures & Execution"
   };
 
   const sectionEmojis: Record<string, string> = {
-    executiveSummary: "📋", aboutCompany: "🏢", projectOverview: "🎯",
-    features: "⚡", technologyStack: "🔧", pricing: "💰",
-    digitalMarketing: "📈", addOns: "🚀", legalTerms: "⚖️", acceptanceSection: "✍️"
+    coverPage: "📖", confidentialPage: "🔒", executiveSummary: "📋", businessUnderstanding: "🏢", currentChallenges: "⚠️",
+    painPoints: "🔥", businessObjectives: "🎯", proposedSolution: "💡", whyThisSolution: "❓", systemOverview: "🌐",
+    architectureDiagram: "📐", userFlow: "🔄", technologyStack: "🔧", projectModules: "📦", features: "⚡",
+    functionalRequirements: "📝", nonFunctionalRequirements: "🛡️", databaseDesign: "🗄️", apiArchitecture: "🔌", security: "🔑",
+    aiIntegration: "🤖", thirdPartyIntegrations: "🧩", developmentMethodology: "🤝", sprintPlanning: "📅", timeline: "🗓️",
+    milestones: "🏆", teamStructure: "👥", testingStrategy: "🧪", deployment: "🚀", hosting: "☁️",
+    maintenance: "🛠️", support: "☎️", training: "🎓", costEstimation: "💰", paymentMilestones: "💳",
+    futureEnhancements: "🚀", riskAnalysis: "⚡", termsConditions: "⚖️", acceptanceCriteria: "✔️", warranty: "🛡️",
+    thankYou: "🙏", signaturePage: "✍️"
   };
 
-  const accentColors: Record<string, string> = {
-    executiveSummary: themeColors.primary, 
-    aboutCompany: themeColors.secondary, 
-    projectOverview: themeColors.primary,
-    features: themeColors.primary, 
-    technologyStack: themeColors.secondary, 
-    pricing: themeColors.primary,
-    digitalMarketing: themeColors.secondary, 
-    addOns: themeColors.primary, 
-    legalTerms: "#6B7280", 
-    acceptanceSection: themeColors.secondary
-  };
+  const accentColors = sectionOrder.reduce((acc, key, idx) => {
+    if (key === "termsConditions") {
+      acc[key] = "#6B7280";
+    } else {
+      acc[key] = idx % 2 === 0 ? themeColors.primary : themeColors.secondary;
+    }
+    return acc;
+  }, {} as Record<string, string>);
 
   const activeSections = sectionOrder.filter(k => enabledSections[k] !== false && sections[k]);
 
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportFormat, setExportFormat] = useState<"A4" | "Letter">("A4");
+  const [isExporting, setIsExporting] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    // Give charts and dynamic content time to render
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleExportPdf = async () => {
+    setIsExporting(true);
+    try {
+      const token = localStorage.getItem("auth_token") || "";
+      const response = await fetch(`/api/proposals/${id}/pdf?format=${exportFormat}&theme=${selectedTheme}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error("Failed to generate PDF");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `proposal-${proposal.clientName.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsExporting(false);
+      setShowExportModal(false);
+    }
+  };
+
+  const pageStyle: React.CSSProperties = isPrintMode
+    ? { borderRadius: "0px", boxShadow: "none", marginBottom: "0px", width: "100%", pageBreakAfter: "always", pageBreakInside: "avoid" }
+    : { borderRadius: "16px", overflow: "hidden", marginBottom: "24px", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" };
+
   return (
-    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", background: "#f1f5f9", minHeight: "100vh" }}>
+    <div style={{ fontFamily: "'Inter', 'Segoe UI', sans-serif", background: isPrintMode ? "#ffffff" : "#f1f5f9", minHeight: "100vh" }}>
       {/* Google Fonts */}
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
@@ -414,132 +640,96 @@ export default function ProposalPreview() {
         .section-page { background: white; margin-bottom: 0; position: relative; overflow: hidden; }
         @media print {
           .no-print { display: none !important; }
-          .section-page { page-break-after: always; box-shadow: none; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .section-page { page-break-after: always; page-break-inside: avoid; box-shadow: none !important; border-radius: 0 !important; margin: 0 !important; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; }
+          .proposal-body { page-break-inside: avoid; }
+          tr { page-break-inside: avoid; }
+          img { page-break-inside: avoid; }
+          svg { page-break-inside: avoid; }
+          canvas { page-break-inside: avoid; }
         }
       `}</style>
 
       {/* ── TOP BAR ─────────────────────────────────────────────────────────── */}
-      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 100, background: "white", borderBottom: "1px solid #e2e8f0", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", maxWidth: "1200px", margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <Link href={`/proposals/${id}`}>
-              <Button variant="ghost" size="sm" style={{ color: "#64748b" }}>
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back to Editor
-              </Button>
-            </Link>
-            <div style={{ width: "1px", height: "24px", background: "#e2e8f0" }} />
-            <div>
-              <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b" }}>{proposal.clientName}</div>
-              <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "1px" }}>{proposal.projectName}</div>
+      {!isPrintMode && (
+        <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 100, background: "white", borderBottom: "1px solid #e2e8f0", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 24px", maxWidth: "1200px", margin: "0 auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+              <Link href={`/proposals/${id}`}>
+                <Button variant="ghost" size="sm" style={{ color: "#64748b" }}>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Editor
+                </Button>
+              </Link>
+              <div style={{ width: "1px", height: "24px", background: "#e2e8f0" }} />
+              <div>
+                <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b" }}>{proposal.clientName}</div>
+                <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "1px" }}>{proposal.projectName}</div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+              <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{activeSections.length} sections • {format(new Date(proposal.projectDate || new Date()), "MMM d, yyyy")}</span>
+              <button
+                onClick={() => setShowExportModal(true)}
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: themeColors.primary, color: "white", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", boxShadow: `0 4px 14px ${themeColors.primary}40` }}
+              >
+                <Printer style={{ width: "15px", height: "15px" }} />
+                Export PDF
+              </button>
             </div>
           </div>
-          <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-            <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>{activeSections.length} sections • {format(new Date(proposal.projectDate || new Date()), "MMM d, yyyy")}</span>
-            <button
-              onClick={() => window.print()}
-              style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 20px", background: themeColors.primary, color: "white", border: "none", borderRadius: "10px", fontWeight: 600, fontSize: "0.88rem", cursor: "pointer", boxShadow: `0 4px 14px ${themeColors.primary}40` }}
-            >
-              <Printer style={{ width: "15px", height: "15px" }} />
-              Export PDF
-            </button>
+        </div>
+      )}
+
+      {/* Export Format Selector Dialog */}
+      {!isPrintMode && showExportModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "white", borderRadius: "12px", padding: "24px", width: "320px", boxShadow: "0 10px 25px rgba(0,0,0,0.15)" }}>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: 700, marginBottom: "16px", color: "#1e293b" }}>Export PDF Options</h3>
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ fontSize: "0.82rem", fontWeight: 600, color: "#475569", display: "block", marginBottom: "8px" }}>Page Format</label>
+              <select 
+                value={exportFormat} 
+                onChange={(e) => setExportFormat(e.target.value as "A4" | "Letter")}
+                style={{ width: "100%", padding: "8px 12px", border: "1px solid #cbd5e1", borderRadius: "6px", fontSize: "0.88rem" }}
+              >
+                <option value="A4">A4 (210mm x 297mm)</option>
+                <option value="Letter">Letter (8.5in x 11in)</option>
+              </select>
+            </div>
+            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
+              <Button variant="outline" size="sm" onClick={() => setShowExportModal(false)} disabled={isExporting}>
+                Cancel
+              </Button>
+              <Button size="sm" style={{ background: themeColors.primary, color: "white" }} onClick={handleExportPdf} disabled={isExporting}>
+                {isExporting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Printer className="w-4 h-4 mr-2" />}
+                {isExporting ? "Generating..." : "Generate PDF"}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* ── DOCUMENT ─────────────────────────────────────────────────────────── */}
-      <div style={{ padding: "32px 16px 80px", maxWidth: "980px", margin: "0 auto" }}>
+      <ThemeProvider industry={proposal.clientIndustry}>
+        <div style={isPrintMode ? { padding: "0", margin: "0", maxWidth: "100%" } : { padding: "32px 16px 80px", maxWidth: "980px", margin: "0 auto" }}>
 
         {/* ══════════════════════════════════════════════════════════════
             PAGE 1 — COVER
         ══════════════════════════════════════════════════════════════ */}
-        <div className="section-page" style={{ borderRadius: "16px", overflow: "hidden", marginBottom: "12px", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
-          {/* Top color band */}
-          <div style={{ height: "8px", background: themeColors.dots }} />
-
-          {/* Cover body */}
-          <div style={{ background: themeColors.coverBg, minHeight: "680px", padding: "60px 72px", position: "relative", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-            {/* Blur blobs */}
-            {[
-              { top: "-80px", right: "-80px", size: "400px", color: themeColors.primary + "40" },
-              { bottom: "-100px", left: "-60px", size: "350px", color: themeColors.secondary + "30" },
-              { top: "40%", left: "55%", size: "250px", color: themeColors.secondary + "20" }
-            ].map((b: any, i) => (
-              <div key={i} style={{ position: "absolute", borderRadius: "50%", background: b.color, filter: "blur(80px)", width: b.size, height: b.size, top: b.top, bottom: b.bottom, left: b.left, right: b.right, pointerEvents: "none" }} />
-            ))}
-
-            {/* Header row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", position: "relative", zIndex: 2 }}>
-              {proposal.logoUrl
-                ? <img src={proposal.logoUrl} alt="Logo" style={{ height: "48px", objectFit: "contain" }} />
-                : <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: "1.3rem", color: "white", letterSpacing: "3px" }}>TECHVISION</div>}
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.45)", letterSpacing: "2px", textTransform: "uppercase" }}>Prepared</div>
-                <div style={{ fontSize: "0.88rem", color: "rgba(255,255,255,0.85)", fontWeight: 600, marginTop: "2px" }}>
-                  {format(new Date(proposal.projectDate || new Date()), "MMMM d, yyyy")}
-                </div>
-              </div>
-            </div>
-
-            {/* Center content */}
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", position: "relative", zIndex: 2, paddingTop: "48px" }}>
-              {/* Accent line */}
-              <div style={{ display: "flex", gap: "6px", marginBottom: "28px" }}>
-                <div style={{ width: "48px", height: "4px", background: themeColors.primary, borderRadius: "2px" }} />
-                <div style={{ width: "24px", height: "4px", background: themeColors.secondary, borderRadius: "2px" }} />
-                <div style={{ width: "12px", height: "4px", background: themeColors.secondary + "80", borderRadius: "2px" }} />
-              </div>
-              <div style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.45)", letterSpacing: "4px", textTransform: "uppercase", marginBottom: "16px", fontWeight: 500 }}>
-                CONFIDENTIAL BUSINESS PROPOSAL
-              </div>
-              <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "3.8rem", fontWeight: 900, color: "white", lineHeight: 1.08, marginBottom: "16px", letterSpacing: "-0.02em" }}>
-                {proposal.clientName}
-              </div>
-              <div style={{ fontSize: "1.4rem", color: "rgba(255,255,255,0.65)", fontWeight: 300, marginBottom: "48px" }}>
-                {proposal.projectName}
-              </div>
-
-              {/* Stats strip */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "14px" }}>
-                {[
-                  { icon: "📋", num: activeSections.length.toString(), label: "Sections" },
-                  { icon: "💡", num: proposal.projectType?.split(" ")[0] || "Custom", label: "Project Type" },
-                  { icon: "🏭", num: proposal.clientIndustry?.split(" ")[0] || "Industry", label: "Sector" },
-                  { icon: "🏆", num: "ISO 27001", label: "Certified" }
-                ].map((s, i) => (
-                  <div key={i} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", padding: "16px", backdropFilter: "blur(8px)" }}>
-                    <div style={{ fontSize: "1.3rem", marginBottom: "8px" }}>{s.icon}</div>
-                    <div style={{ fontWeight: 800, color: "white", fontSize: "0.95rem", marginBottom: "2px" }}>{s.num}</div>
-                    <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", textTransform: "uppercase", letterSpacing: "1.5px" }}>{s.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Footer row */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", position: "relative", zIndex: 2, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: "28px", marginTop: "48px" }}>
-              <div>
-                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" }}>Prepared For</div>
-                <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.9)", fontSize: "0.95rem" }}>{proposal.clientName}</div>
-                <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.45)" }}>{proposal.clientIndustry} Industry</div>
-              </div>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.4)", letterSpacing: "2px", textTransform: "uppercase", marginBottom: "4px" }}>Prepared By</div>
-                <div style={{ fontWeight: 700, color: "rgba(255,255,255,0.9)", fontSize: "0.95rem" }}>TechVision Solutions</div>
-                <div style={{ fontSize: "0.78rem", color: "rgba(255,255,255,0.45)" }}>hello@techvisionsolutions.com</div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bottom color band */}
-          <div style={{ height: "5px", background: themeColors.dots }} />
+        <div className="section-page" style={{ ...pageStyle, minHeight: isPrintMode ? "1000px" : "auto" }}>
+          <CoverPage
+            clientName={proposal.clientName}
+            projectName={proposal.projectName}
+            projectDate={proposal.projectDate}
+            logoUrl={proposal.logoUrl}
+          />
         </div>
 
         {/* ══════════════════════════════════════════════════════════════
             PAGE 2 — TABLE OF CONTENTS + COMPANY HIGHLIGHTS
         ══════════════════════════════════════════════════════════════ */}
-        <div className="section-page" style={{ borderRadius: "16px", marginBottom: "12px", boxShadow: "0 4px 24px rgba(0,0,0,0.08)", padding: "64px 72px" }}>
+        <div className="section-page" style={{ ...pageStyle, padding: "64px 72px", minHeight: isPrintMode ? "1000px" : "auto" }}>
           {/* TOC Header */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "40px" }}>
             <div style={{ width: "6px", height: "48px", background: `linear-gradient(180deg, ${themeColors.primary}, ${themeColors.secondary})`, borderRadius: "3px" }} />
@@ -552,15 +742,24 @@ export default function ProposalPreview() {
           {/* TOC Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "56px" }}>
             {activeSections.map((key, idx) => (
-              <div key={key} style={{ display: "flex", alignItems: "center", gap: "14px", padding: "16px 18px", background: "#f8fafc", borderRadius: "12px", borderLeft: `4px solid ${accentColors[key]}` }}>
-                <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: accentColors[key] + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>
-                  {sectionEmojis[key]}
+              <a 
+                href={`#section-${key}`} 
+                key={key} 
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 18px", background: "#f8fafc", borderRadius: "12px", borderLeft: `4px solid ${accentColors[key]}`, textDecoration: "none", color: "inherit" }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
+                  <div style={{ width: "34px", height: "34px", borderRadius: "8px", background: accentColors[key] + "18", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", flexShrink: 0 }}>
+                    {sectionEmojis[key]}
+                  </div>
+                  <div>
+                    <div style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 700, letterSpacing: "1px" }}>{String(idx + 1).padStart(2, "0")}</div>
+                    <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.88rem" }}>{sectionTitles[key]}</div>
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontSize: "0.62rem", color: "#94a3b8", fontWeight: 700, letterSpacing: "1px" }}>{String(idx + 1).padStart(2, "0")}</div>
-                  <div style={{ fontWeight: 700, color: "#1e293b", fontSize: "0.88rem" }}>{sectionTitles[key]}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingRight: "4px" }}>
+                  <span style={{ fontWeight: 700, color: "#64748b", fontSize: "0.82rem" }}>p. {idx + 3}</span>
                 </div>
-              </div>
+              </a>
             ))}
           </div>
 
@@ -592,43 +791,20 @@ export default function ProposalPreview() {
             CONTENT SECTIONS
         ══════════════════════════════════════════════════════════════ */}
         {activeSections.map((key, idx) => {
-          const color = accentColors[key];
-
           return (
-            <div key={key} className="section-page" style={{ borderRadius: "16px", marginBottom: "12px", boxShadow: "0 4px 24px rgba(0,0,0,0.07)", overflow: "hidden" }}>
-              {/* Section top accent */}
-              <div style={{ height: "4px", background: `linear-gradient(90deg, ${color}, ${color}80)` }} />
+            <SectionPage
+              key={key}
+              id={key}
+              sectionIndex={idx + 1}
+              totalSections={activeSections.length}
+              sectionTitle={sectionTitles[key]}
+              emoji={sectionEmojis[key]}
+              isPrintMode={isPrintMode}
+            >
+              <ProposalSectionRenderer sectionData={sections[key]} />
 
-              {/* Section header */}
-              <div style={{ background: `linear-gradient(135deg, ${color}08, ${color}15)`, padding: "40px 64px 28px", borderBottom: `1px solid ${color}20` }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <div style={{ width: "52px", height: "52px", borderRadius: "14px", background: color, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem", boxShadow: `0 8px 24px ${color}50`, flexShrink: 0 }}>
-                    {sectionEmojis[key]}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: "0.62rem", color: "#94a3b8", letterSpacing: "3px", textTransform: "uppercase", marginBottom: "4px" }}>
-                      Section {String(idx + 1).padStart(2, "0")}
-                    </div>
-                    <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: "1.8rem", color: "#1e293b", lineHeight: 1.1 }}>
-                      {sectionTitles[key]}
-                    </div>
-                  </div>
-                </div>
-                {/* Decorative dots */}
-                <div style={{ display: "flex", gap: "6px", marginTop: "16px" }}>
-                  <div style={{ width: "40px", height: "3px", background: color, borderRadius: "2px" }} />
-                  <div style={{ width: "20px", height: "3px", background: color + "60", borderRadius: "2px" }} />
-                  <div style={{ width: "10px", height: "3px", background: color + "30", borderRadius: "2px" }} />
-                </div>
-              </div>
-
-              {/* Section body */}
-              <div style={{ padding: "40px 64px 52px" }} className="proposal-body">
-                <div dangerouslySetInnerHTML={{ __html: markdownToHtml(sections[key]) }} />
-              </div>
-
-              {/* Inline charts/visuals for specific sections */}
-              {key === "pricing" && (
+              {/* Inline charts/visuals for legacy string sections */}
+              {typeof sections[key] === "string" && key === "pricing" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "32px", border: "1px solid #f1f5f9" }}>
                     <div style={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: "1.1rem", color: "#1e293b", marginBottom: "24px" }}>📊 Package Comparison Overview</div>
@@ -644,7 +820,7 @@ export default function ProposalPreview() {
                 </div>
               )}
 
-              {key === "digitalMarketing" && (
+              {typeof sections[key] === "string" && key === "digitalMarketing" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
                     <div style={{ background: "#f8fafc", borderRadius: "14px", padding: "28px", border: "1px solid #f1f5f9" }}>
@@ -670,14 +846,15 @@ export default function ProposalPreview() {
                   </div>
                 </div>
               )}
-              {key === "projectOverview" && (
+
+              {typeof sections[key] === "string" && key === "projectOverview" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   <ArchitectureDiagram markdown={sections[key]} />
                   <TimelineVisual markdown={sections[key]} />
                 </div>
               )}
 
-              {key === "technologyStack" && (
+              {typeof sections[key] === "string" && key === "technologyStack" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   {parseTechTable(sections[key]) ? (
                     <TechStackVisual markdown={sections[key]} />
@@ -707,7 +884,7 @@ export default function ProposalPreview() {
                 </div>
               )}
 
-              {key === "features" && (
+              {typeof sections[key] === "string" && key === "features" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   <div style={{ background: "linear-gradient(135deg, #f8fafc, #eff6ff)", borderRadius: "14px", padding: "28px", border: "1px solid #e2e8f0" }}>
                     <div style={{ fontWeight: 700, fontSize: "0.95rem", color: "#1e293b", marginBottom: "20px" }}>⚡ Platform Feature Highlights</div>
@@ -733,7 +910,7 @@ export default function ProposalPreview() {
                 </div>
               )}
 
-              {key === "executiveSummary" && (
+              {typeof sections[key] === "string" && key === "executiveSummary" && (
                 <div style={{ padding: "0 64px 48px" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
                     {[
@@ -750,21 +927,15 @@ export default function ProposalPreview() {
                   </div>
                 </div>
               )}
-
-              {/* Section footer */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 64px", borderTop: "1px solid #f1f5f9", background: "#fafbfc" }}>
-                <span style={{ fontSize: "0.68rem", color: "#94a3b8", letterSpacing: "0.5px" }}>TechVision Solutions — Confidential & Proprietary</span>
-                <span style={{ fontSize: "0.72rem", fontWeight: 700, color: color }}>Section {idx + 1} / {activeSections.length}</span>
-              </div>
-            </div>
+            </SectionPage>
           );
         })}
 
         {/* ══════════════════════════════════════════════════════════════
             FINAL PAGE — THANK YOU + SIGNATURE
         ══════════════════════════════════════════════════════════════ */}
-        <div className="section-page" style={{ borderRadius: "16px", overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.12)" }}>
-          <div style={{ background: themeColors.coverBg, padding: "80px 72px", position: "relative", overflow: "hidden" }}>
+        <div className="section-page" style={{ ...pageStyle, minHeight: isPrintMode ? "1000px" : "auto" }}>
+          <div style={{ background: themeColors.coverBg, padding: "80px 72px", position: "relative", overflow: "hidden", minHeight: isPrintMode ? "992px" : "auto" }}>
             {/* Blobs */}
             <div style={{ position: "absolute", top: "-100px", right: "-80px", width: "450px", height: "450px", borderRadius: "50%", background: themeColors.primary + "30", filter: "blur(80px)", pointerEvents: "none" }} />
             <div style={{ position: "absolute", bottom: "-80px", left: "-60px", width: "380px", height: "380px", borderRadius: "50%", background: themeColors.secondary + "20", filter: "blur(70px)", pointerEvents: "none" }} />
@@ -829,7 +1000,9 @@ export default function ProposalPreview() {
           <div style={{ height: "6px", background: themeColors.dots }} />
         </div>
 
-      </div>
+        {isReady && <div className="proposal-ready" style={{ display: "none" }} />}
+        </div>
+      </ThemeProvider>
     </div>
   );
 }

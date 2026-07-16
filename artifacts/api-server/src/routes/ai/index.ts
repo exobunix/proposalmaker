@@ -10,7 +10,52 @@ import { requireAuth } from "../../middlewares/auth";
 
 const router = Router();
 
-async function generateGeminiContent(systemPrompt: string, prompt: string): Promise<string> {
+async function generateGeminiJson(systemPrompt: string, prompt: string): Promise<any> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY environment variable is not set");
+  }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+  const combinedPrompt = `${systemPrompt}\n\nUser Request / Prompt:\n${prompt}`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          parts: [
+            {
+              text: combinedPrompt
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        maxOutputTokens: 8192,
+        temperature: 0.2,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Gemini API returned error status ${response.status}: ${errorText}`);
+  }
+
+  const data = await response.json() as any;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) {
+    throw new Error("Invalid response format from Gemini API");
+  }
+  return JSON.parse(content.trim());
+}
+
+async function generateGeminiText(systemPrompt: string, prompt: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY environment variable is not set");
@@ -56,609 +101,159 @@ async function generateGeminiContent(systemPrompt: string, prompt: string): Prom
 
 router.use(requireAuth);
 
-function buildSystemPrompt(contactDetails?: string | null): string {
-  const providerDetails = contactDetails 
-    ? `Use the following contact/firm details for the Service Provider (the company proposing the solution): ${contactDetails}`
-    : `The Service Provider (the company proposing the solution) details are not explicitly provided. You should dynamically generate a highly professional and realistic IT consulting/service provider name (e.g. based on the project domain, like 'DevSync Solutions' or 'AeroApps Technologies') and corresponding company background for the 'About Us' section. Never hardcode 'TechVision Solutions' unless it is appropriate.`;
-
-  return `You are an expert senior business proposal writer and digital consultant working for a premium IT firm.
-
-Your proposals are renowned for being:
-- Extremely detailed, comprehensive and thorough (do not skip details, produce high density information)
-- Written like a top-tier consulting firm (McKinsey, Deloitte Digital, Accenture)
-- Rich with specific technical details, feature breakdowns, timelines, and business rationale
-- Structured with clear headings, subheadings, bullet points, numbered lists, and tables
-- Persuasive and ROI-focused — every section builds trust and closes the deal
-
-FORMATTING RULES (strictly follow these):
-- Use markdown formatting: ## for main headings, ### for subheadings, **bold** for key terms, - for bullets
-- Include real, specific details — never write generic placeholder text
-- Minimum 600-800 words per section to ensure thoroughness and matching of enterprise PDF standards
-- Use tables where applicable (pricing, tech stack, timeline)
-- Break up text with subheadings every 2-3 paragraphs
-- Use numbered lists for sequential steps or ranked items
-- Use bullet points for features, capabilities, or benefits
-- Always end sections with a strong value statement or transition
-
-Service Provider / Proposing Company Details:
-${providerDetails}`;
+function buildSystemPrompt(): string {
+  return `You are an expert senior business proposal writer and enterprise digital architect.
+Generate consulting-grade proposal content in structured JSON format. Avoid placeholder text or generic summaries. All content must be fully fleshed out, specific to the client's business challenge, and highly professional.`;
 }
 
-function buildSectionPrompts(
-  projectType: string,
-  clientIndustry: string,
-  clientName: string,
-  projectName: string,
-  budgetRange?: string | null,
-  additionalContext?: string | null,
-  contactDetails?: string | null
-): Record<string, string> {
-  const budget = budgetRange ? `Budget range: ${budgetRange}.` : "";
-  const extra = additionalContext ? `\n\nAdditional Instructions from client: ${additionalContext}` : "";
-  const providerInfo = contactDetails ? `Proposing firm (Service Provider) info and contact details: ${contactDetails}` : "Proposing firm name: Determine dynamically (or use a realistic custom name matching the project type).";
-
-  return {
-    executiveSummary: `Write a comprehensive, detailed Executive Summary for a ${projectType} proposal for "${clientName}" in the ${clientIndustry} industry. Project name: "${projectName}". ${budget}
-
-Include ALL of the following in your Executive Summary:
-## Executive Summary
-
-### The Opportunity
-- Paint a vivid picture of the business challenge or opportunity "${clientName}" faces in today's ${clientIndustry} market
-- Reference relevant industry trends, market statistics, and competitive pressures
-- Explain the cost of inaction (lost revenue, customer attrition, technical debt)
-
-### Our Proposed Solution
-- Describe "${projectName}" as a transformative, tailor-made ${projectType} solution
-- Highlight the 3-5 core pillars of the solution (e.g., scalable architecture, multi-tenant portal, modern client channels)
-- Explain how it directly addresses their specific challenges
-
-### Why Choose Us
-- Highlight our firm's unique qualifications for this project (8+ years experience, 400+ successful projects, ISO 27001)
-- Reference relevant success stories and expertise
-
-### Expected Business Impact
-- List 4-6 specific, measurable outcomes (increase conversions by X%, reduce operational costs by Y%, improve SLA fulfillment)
-- ROI projection and timeline to break even
-- Long-term strategic value
-
-### Engagement Overview
-- High-level timeline (e.g. 20-week delivery plan)
-- Our collaborative approach and next steps after proposal acceptance
-
-Write in a confident, premium consulting tone. Be specific to the ${clientIndustry} industry. Minimum 600 words.${extra}`,
-
-    aboutCompany: `Write a detailed "About Our Company" section for a proposal to "${clientName}". This section must establish credibility, showcase expertise, and build trust.
-
-Include ALL of the following:
-## About TechVision Solutions
-
-### Who We Are
-- 2-3 paragraphs about our company mission, values, and approach to digital transformation
-- Mention our founding story and growth trajectory
-- Highlight our focus on building scalable, enterprise-grade ${projectType} solutions for ${clientIndustry} businesses
-
-### Our Expertise
-- Deep expertise in ${projectType} development
-- List of core technical competencies (full-stack, cloud, AI/ML, security, integrations, etc.)
-- Highlight ${clientIndustry}-specific knowledge
-
-### Our Track Record
-- Types of clients we've worked with (Fortune 500, high-growth startups)
-- Range of projects delivered successfully
-- Client retention rate and satisfaction metrics
-- Awards and certifications (e.g. ISO 27001 certified)
-
-### Our Development Philosophy
-- Agile methodology and iterative delivery
-- Quality assurance and testing standards
-- Post-launch support and partnership approach
-
-### Why We're the Right Partner for ${clientName}
-- Specific alignment between our expertise and this project's requirements
-- Our commitment to on-time, on-budget delivery
-
-Write in a proud, confident, premium tone. Minimum 600 words.${extra}`,
-
-    projectOverview: `Write a highly detailed Project Overview for "${projectName}" — a ${projectType} solution for "${clientName}" in the ${clientIndustry} industry. ${budget}
-
-Include ALL of the following:
-## Project Overview
-
-### Project Vision
-- 2-paragraph description of the vision and purpose of "${projectName}"
-- How it aligns with "${clientName}"'s strategic goals
-
-### Problem Statement
-- Describe the specific challenges in ${clientIndustry} that this project solves
-- Current pain points (manual processes, poor user experience, scalability issues, etc.)
-- Business impact of these problems
-
-### Proposed Solution Architecture
-Must be presented as a clear bulleted list using the exact format below:
-- **Client Channels**: List user-facing apps/panels (e.g., Owner App, Vendor App, Technician App, Web portals)
-- **API Gateway Layer**: Describe routing and rate limiting (e.g., APISIX API Gateway)
-- **Identity Provider**: Keycloak for SSO, OAuth 2.0, and fine-grained RBAC
-- **Microservices Backend**: Core services (e.g., Property Service, Maintenance Service, Notification Service)
-- **Data & Infrastructure Layer**: Infrastructure components (e.g., PostgreSQL, Redis, RabbitMQ, Kubernetes, Prometheus, Grafana, Loki, MinIO)
-
-### Core Objectives
-List 5-8 specific, measurable project objectives:
-1. [Objective with measurable outcome]
-(continue for all objectives...)
-
-### Scope of Work
-- What is included in this engagement
-- Platform(s) covered (web, mobile, admin panel, API, etc.)
-- Integrations to be built
-
-### Out of Scope
-- What is explicitly not included to manage expectations
-
-### Project Timeline Overview
-| Phase | Duration | Deliverables |
-|-------|----------|-------------|
-| Discovery & Planning | 2 weeks | Requirement workshops, BRD, design setup |
-| UI/UX Design | 3 weeks | Wireframes, prototypes, approved design system |
-| Architecture & Setup | 2 weeks | Cloud provisioning, CI/CD, environments |
-| Core Development | 10 weeks | APIs, database integration, apps, portals |
-| Testing & QA | 2 weeks | Integration testing, security audits, UAT |
-| Handover & Launch | 1 week | Production rollout, training, hypercare |
-
-Write with deep technical and business insight. Minimum 700 words.${extra}`,
-
-    features: `Write an extremely comprehensive Features & Modules breakdown section for "${projectName}" (${projectType}) for "${clientName}" in ${clientIndustry}. This should be the most detailed section of the proposal.
-
-Format as follows:
-## Key Features & Modules
-
-### 1. User Panel / Customer-Facing Interface
-#### [Feature Group Name]
-- **Feature Name**: Detailed description of what this feature does, why it matters, and how it works
-(List 6-8 features with detailed descriptions)
-
-### 2. Admin Panel / Back-Office Dashboard
-#### [Admin Feature Group]
-- **Feature Name**: Detailed description of what this admin feature does
-(List 6-8 admin features)
-
-### 3. [Third Panel if applicable — Vendor, Driver, Agent, etc. (Or Advanced Platform Features)]
-#### [Third Panel Feature Group]
-- **Feature Name**: Detailed description
-(List 5-6 features)
-
-### 4. Advanced Platform Features
-- **Real-Time Notifications**: Push, email, and SMS notification system for all user actions
-- **Analytics Dashboard**: Track KPIs, user behavior, revenue metrics with visual charts
-- **Search & Filters**: Advanced search with multi-faceted filters, sorting, and saved searches
-- **Multi-language Support**: Full localization framework for international expansion
-- **Payment Gateway Integration**: Multiple payment methods — credit/debit cards, UPI, wallets, bank transfers
-- **Security & Compliance**: Two-factor authentication, role-based access control, GDPR/data compliance
-- **API & Webhooks**: RESTful API for third-party integrations and webhook support for real-time events
-- **Mobile Responsive Design**: Fully responsive interface optimized for all screen sizes
-
-### 5. AI & Automation Features
-- Detail how AI or automation enhances productivity or user engagement in this project.
-
-Be extremely specific and detailed. Minimum 800 words. Tailor every feature to the ${clientIndustry} industry.${extra}`,
-
-    technologyStack: `Write a detailed Technology Stack section for "${projectName}" (${projectType}) for "${clientName}" in ${clientIndustry}.
-
-Format as follows:
-## Technology Stack
-
-### Overview
-- 1-2 paragraphs explaining our technology selection philosophy and how choices were made for this specific project
-
-### Enterprise Technology Stack
-You must include a markdown table in the exact format below:
-| Layer | Technology | Purpose & Rationale |
-|---|---|---|
-| Backend | Java 21 / Spring Boot 3 / Spring Cloud | Microservices framework, enterprise reliability, service discovery, scalability |
-| Frontend | React 18 / Next.js 14 | Web admin panels, component-driven UI, server-side rendering, SEO-optimized portals |
-| Mobile | Flutter 3 | Cross-platform mobile development (iOS & Android) with native performance |
-| Data & Messaging | PostgreSQL 16 / Redis 7 / RabbitMQ | ACID compliance, caching, rate limiting, and asynchronous event delivery |
-| Platform & Security | Keycloak / APISIX | Single Sign-On (SSO), OAuth 2.0, API routing, WAF, and rate limiting |
-| Observability & Infra | Kubernetes / Prometheus + Grafana / Loki + MinIO | Container orchestration, real-time metrics, log aggregation, and S3 object storage |
-
-### Security Architecture
-- **Identity & Access Management**: Keycloak-powered SSO, RBAC, OAuth 2.0, Multi-Factor Authentication (MFA)
-- **API & Transport Security**: End-to-end TLS 1.3, JWT validation at gateway, rate limiting, and WAF protection
-- **Data Protection**: Database-per-tenant isolation, AES-256 encryption at rest, secure signed URLs, and PII masking
-- **Monitoring & Audit**: Centralized logs via Loki, metrics via Prometheus, and security dashboards in Grafana
-- **Resilience & Recovery**: Automated daily encrypted backups, multi-zone HA Kubernetes deployments, and DR runbooks
-
-Write with technical depth and business justification. Minimum 600 words.${extra}`,
-
-
-    pricing: `Write a comprehensive Investment & Pricing section for "${projectName}" (${projectType}) for "${clientName}". ${budget}
-
-Format as follows:
-## Investment & Pricing
-
-### Investment Philosophy
-- 1 paragraph explaining our value-based pricing approach and what the investment covers
-
-### Package Options
-
----
-
-## 🥉 Starter Package
-**Investment: [Price based on budget range or standard market rate]**
-**Timeline: X-Y weeks**
-
-#### Included Features:
-(List 8-12 core features included in this package)
-
-#### Technical Scope:
-- Platforms: Web + Mobile (iOS & Android) / Web only
-- Tech stack summary
-- Number of user roles
-
-#### What's Included:
-- Design (UI/UX wireframes, mockups, final designs)
-- Development (frontend, backend, database)
-- Testing (unit, integration, UAT)
-- Deployment (staging + production)
-- Documentation (technical + user)
-- Post-launch support: 30 days
-
----
-
-## 🥈 Professional Package ⭐ RECOMMENDED
-**Investment: [Price — 40-60% more than Starter]**
-**Timeline: X-Y weeks**
-
-#### Includes Everything in Starter PLUS:
-(List 6-10 additional features)
-
-- Post-launch support: 60 days
-- Priority support response
-
----
-
-## 🥇 Enterprise Package
-**Investment: [Price — 80-120% more than Starter]**
-**Timeline: X-Y weeks**
-
-#### Includes Everything in Professional PLUS:
-(List 6-8 premium add-ons)
-
-- Post-launch support: 90 days
-- Dedicated account manager
-- Monthly performance reports
-
----
-
-### Payment Terms
-- 30% upfront upon project commencement
-- 40% at mid-project milestone (design approval / beta launch)
-- 30% upon final delivery and sign-off
-
-### What's Included Across All Packages
-- Source code ownership transferred to client
-- Staging environment for testing
-- Production-ready deployment
-- Complete project documentation
-- Knowledge transfer sessions
-
-Tailor pricing to the ${clientIndustry} industry. Be specific with features in each tier. Minimum 450 words.${extra}`,
-
-    digitalMarketing: `Write an extremely detailed Digital Marketing Strategy section for "${clientName}"'s "${projectName}" in the ${clientIndustry} industry.
-
-Format as follows:
-## Digital Marketing Strategy
-
-### Marketing Overview
-- Strategic approach aligned with ${clientIndustry} market dynamics
-- Target audience definition and personas
-
-### 1. Search Engine Optimization (SEO)
-#### Technical SEO
-- Site structure, URL optimization, schema markup
-- Core Web Vitals optimization, page speed
-
-#### On-Page SEO
-- Keyword research and mapping strategy
-- Content optimization approach
-- Meta tags, headings, internal linking strategy
-
-#### Off-Page SEO
-- Link building strategy
-- Digital PR and brand mentions
-
-**Expected Timeline**: 3-6 months to first-page rankings
-**Target Keywords**: (list example keywords relevant to their business)
-
-### 2. Social Media Marketing
-| Platform | Target Audience | Content Strategy | Posting Frequency |
-|---------|----------------|-----------------|------------------|
-| Instagram | ... | ... | ... |
-| Facebook | ... | ... | ... |
-| LinkedIn | ... | ... | ... |
-(add relevant platforms for the ${clientIndustry})
-
-#### Content Strategy
-- Content pillars and themes
-- Visual identity guidelines
-- Community management approach
-
-### 3. Paid Advertising (PPC)
-#### Google Ads
-- Search campaigns targeting high-intent keywords
-- Display retargeting campaigns
-- Performance Max campaigns
-
-#### Social Media Ads
-- Facebook/Instagram advertising strategy
-- Budget allocation and expected ROAS
-- A/B testing framework
-
-**Recommended Monthly Ad Budget**: ₹X - ₹Y / $X - $Y
-
-### 4. Content Marketing
-- Blog strategy with 2-4 posts/week
-- Video content plan
-- Case studies and testimonials
-- Email newsletter strategy
-
-### 5. Analytics & KPI Framework
-| KPI | Target | Measurement Tool |
-|----|-------|-----------------|
-| Organic Traffic | +X% MoM | Google Analytics |
-| Conversion Rate | X% | ... |
-(list 6-8 KPIs)
-
-### 6. 90-Day Marketing Launch Plan
-- Month 1: Foundation (setup, audit, content creation)
-- Month 2: Execution (campaigns live, content publishing)
-- Month 3: Optimization (data analysis, budget reallocation)
-
-Minimum 550 words. Be specific to the ${clientIndustry} industry.${extra}`,
-
-    addOns: `Write a detailed Optional Add-On Services section for "${projectName}" for "${clientName}" in ${clientIndustry}.
-
-Format as follows:
-## Optional Add-On Services
-
-### Overview
-Brief intro paragraph about how these add-ons can amplify the impact of "${projectName}".
-
----
-
-### 📦 Add-On 1: Advanced SEO Package
-**Investment: ₹XX,XXX / month (3-month minimum)**
-
-**What's Included:**
-- Comprehensive technical SEO audit
-- 8 SEO-optimized blog articles/month (1500+ words each)
-- Guest posting and link building (5 high-DA links/month)
-- Weekly ranking reports and monthly strategy calls
-- Local SEO optimization (Google My Business)
-
-**Expected ROI**: 200-400% organic traffic increase within 6 months
-
----
-
-### 🎬 Add-On 2: UGC & Video Content Production
-**Investment: ₹XX,XXX per package**
-
-**What's Included:**
-- 10 professional UGC-style videos (30-60 seconds each)
-- 4 long-form YouTube/explainer videos
-- 20 Instagram Reels / TikTok-style short videos
-- Professional voiceover and subtitles
-- Platform-specific optimization
-
-**Best For**: E-commerce brands, consumer apps, local businesses wanting viral content
-
----
-
-### 🔧 Add-On 3: Premium Maintenance & Support Plan
-**Investment: ₹XX,XXX / month**
-
-**What's Included:**
-- 24/7 uptime monitoring with instant alerts
-- Up to 40 hours of bug fixes and updates/month
-- Monthly performance optimization report
-- Database backups (daily automated + 30-day retention)
-- Security patches and dependency updates
-- Quarterly feature enhancements
-- Dedicated support Slack channel
-
----
-
-### 🚀 Add-On 4: Performance Optimization Package
-**Investment: ₹XX,XXX (one-time)**
-
-**What's Included:**
-- Complete codebase audit and refactoring
-- Database query optimization (50%+ speed improvement)
-- CDN setup and configuration
-- Image compression and lazy loading
-- PageSpeed score improvement to 90+
-- Load testing up to 10,000 concurrent users
-
----
-
-### 🔒 Add-On 5: Security Audit & Penetration Testing
-**Investment: ₹XX,XXX (quarterly)**
-
-**What's Included:**
-- Full OWASP Top 10 vulnerability assessment
-- Penetration testing by certified security engineers
-- Detailed security report with remediation plan
-- Fix implementation for identified vulnerabilities
-- ISO 27001 compliance consultation
-
----
-
-### 📊 Add-On 6: Business Intelligence & Custom Reporting
-**Investment: ₹XX,XXX (one-time setup) + ₹X,XXX/month**
-
-**What's Included:**
-- Custom BI dashboard (Power BI or Tableau)
-- Real-time sales and operations reporting
-- Predictive analytics using historical data
-- Automated weekly/monthly PDF reports to stakeholders
-
-Minimum 450 words. Tailor add-ons to ${clientIndustry}.${extra}`,
-
-    legalTerms: `Write comprehensive Terms & Conditions for a software development agreement for "${projectName}" between our firm and "${clientName}".
-
-Format as follows:
-## Terms & Conditions
-
-*This Software Development Agreement ("Agreement") is entered into between TechVision Solutions ("Service Provider") and ${clientName} ("Client") for the development of ${projectName}.*
-
----
-
-### 1. Scope of Work
-1.1 The Service Provider agrees to design, develop, test, and deploy "${projectName}" as described in this proposal document.
-1.2 Any work outside the agreed scope will be treated as a change request and priced separately.
-1.3 All features and specifications are as documented in the Scope of Work section of this proposal.
-
-### 2. Intellectual Property Rights
-2.1 Upon receipt of final payment, all intellectual property, including source code, designs, and documentation, shall be transferred to the Client.
-2.2 The Service Provider retains the right to showcase the project in their portfolio unless explicitly requested otherwise in writing.
-2.3 The Client warrants that any materials, logos, or content provided do not infringe third-party intellectual property rights.
-
-### 3. Payment Terms & Conditions
-3.1 **Payment Schedule**: 30% upfront, 40% at mid-project milestone, 30% upon final delivery.
-3.2 Payments are due within 7 business days of invoice issuance.
-3.3 A late payment fee of 2% per month applies to overdue invoices.
-3.4 Work will pause if payment is more than 14 days overdue until the outstanding balance is cleared.
-3.5 All prices are exclusive of applicable taxes (GST/VAT).
-
-### 4. Project Timeline & Milestones
-4.1 The project timeline is contingent upon timely feedback and approvals from the Client.
-4.2 Delays caused by the Client's failure to provide timely feedback (more than 5 business days) may extend the project timeline accordingly.
-4.3 The Service Provider will provide weekly status updates via agreed communication channels.
-
-### 5. Change Requests & Scope Modifications
-5.1 Any changes to the agreed scope of work must be submitted in writing.
-5.2 The Service Provider will assess the impact on timeline and cost within 3 business days.
-5.3 No additional work will commence without written approval and, if applicable, payment for the change request.
-
-### 6. Confidentiality
-6.1 Both parties agree to keep all confidential information, business data, and trade secrets strictly private.
-6.2 Neither party will disclose confidential information to third parties without prior written consent.
-6.3 This confidentiality obligation survives termination of the Agreement for a period of 3 years.
-
-### 7. Warranties & Representations
-7.1 The Service Provider warrants that the delivered software will function as specified for 30/60/90 days post-launch (per chosen package).
-7.2 During the warranty period, bugs and errors will be fixed at no additional cost.
-7.3 The warranty does not cover issues caused by third-party services, unauthorized modifications, or misuse.
-
-### 8. Limitation of Liability
-8.1 The Service Provider's total liability under this Agreement shall not exceed the total fees paid by the Client.
-8.2 Neither party shall be liable for indirect, incidental, or consequential damages.
-
-### 9. Termination
-9.1 Either party may terminate this Agreement with 30 days written notice.
-9.2 Upon termination, the Client shall pay for all work completed to date.
-9.3 The Service Provider will deliver all completed work and assets upon receipt of outstanding payments.
-
-### 10. Governing Law
-10.1 This Agreement shall be governed by the laws of [Jurisdiction].
-10.2 Any disputes shall first be addressed through mediation before litigation.
-
-### 11. Force Majeure
-Neither party shall be liable for delays caused by circumstances beyond their reasonable control, including natural disasters, government actions, or internet infrastructure failures.
-
-Minimum 500 words.${extra}`,
-
-    acceptanceSection: `Write a formal, professional Acceptance & Sign-Off section for "${clientName}"'s "${projectName}" proposal.
-
-Format as follows:
-## Acceptance & Agreement
-
-### Moving Forward Together
-
-We are excited about the opportunity to partner with ${clientName} on "${projectName}". This proposal represents our commitment to delivering a world-class ${projectType} solution that will transform your business in the ${clientIndustry} space.
-
-### Next Steps After Acceptance
-
-Upon signing this proposal, we will immediately initiate the following:
-
-**Week 1: Project Kickoff**
-1. Sign the formal Software Development Agreement
-2. Process the initial 30% payment to reserve your project slot
-3. Schedule the Project Kickoff meeting with key stakeholders
-4. Assign your dedicated project team (Project Manager, Lead Developer, UI/UX Designer)
-
-**Week 1-2: Discovery Phase**
-5. Conduct detailed requirements gathering sessions
-6. Review existing systems, branding, and technical infrastructure
-7. Finalize the project scope, wireframes, and technical architecture document
-8. Set up project management tools and communication channels (Slack, Jira/Notion)
-
-**Week 2-3: Design Phase Begins**
-9. Deliver initial UI/UX wireframes for feedback
-10. Begin brand identity alignment and design system creation
-
-### Our Promise to You
-
-We commit to:
-- ✅ Weekly progress updates every Monday
-- ✅ 24-hour response time to all queries during business hours
-- ✅ Transparent communication about any challenges or changes
-- ✅ On-time, on-budget delivery as agreed
-- ✅ Quality that exceeds your expectations
-
-### Proposal Validity
-
-*This proposal is valid for **30 days** from the date of issue. Pricing and timelines are subject to revision after this period.*
-
----
-
-### Client Acceptance
-
-By signing below, ${clientName} agrees to the terms, scope, timeline, and investment outlined in this proposal.
-
-**Client:**
-
-Full Name: ___________________________________
-
-Title/Designation: ____________________________
-
-Company: ${clientName}
-
-Signature: ___________________________________
-
-Date: _______________________________________
-
----
-
-**Service Provider:**
-
-Full Name: ___________________________________
-
-Title/Designation: Authorized Representative
-
-Company: TechVision Solutions
-
-Signature: ___________________________________
-
-Date: _______________________________________
-
----
-
-*We look forward to building something extraordinary together. Let's make "${projectName}" a landmark project in the ${clientIndustry} industry.*
-
-**Questions? Contact us:**
-📧 hello@techvisionsolutions.com
-📞 +1 (800) 555-0100
-🌐 www.techvisionsolutions.com
-
-Minimum 350 words.${extra}`,
-  };
-}
+// ─── AI Generation Pipeline ──────────────────────────────────────────────────
+
+router.post("/generate-full-proposal", async (req, res) => {
+  const parsed = GenerateFullProposalBody.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request body" });
+    return;
+  }
+
+  const { projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails } =
+    parsed.data;
+
+  try {
+    // ─── STAGE 1: Strategy Analysis & Industry/Theme Detection ───
+    const analysisPrompt = `Analyze this project request and create a detailed business & tech strategy.
+Project Type: ${projectType}
+Client Industry: ${clientIndustry}
+Client Name: ${clientName}
+Project Name: ${projectName}
+Budget: ${budgetRange || "Not specified"}
+Context: ${additionalContext || "None"}
+
+You MUST return a JSON object in this exact format:
+{
+  "theme": "Best match from: Healthcare, Fintech, Real Estate, Legal, Education, Technology, Manufacturing, Agriculture, IoT, Restaurant, Construction",
+  "businessUnderstanding": "Thorough consulting-grade industry analysis",
+  "competitors": "Competitor landscape summary",
+  "architectureOverview": "Technical architecture overview",
+  "techRecommendations": {
+    "frontend": "Frontend language & framework",
+    "backend": "Backend language & framework",
+    "database": "Database type",
+    "cloud": "Cloud provider & deployment target"
+  },
+  "phases": [
+    { "name": "Sprint 1-2", "duration": "2 Weeks", "deliverables": "Specific tasks" }
+  ],
+  "costEstimation": {
+    "total": "Total budget estimate",
+    "breakdown": [
+      { "item": "Development Phase", "cost": "$..." }
+    ]
+  },
+  "risks": [
+    { "risk": "Technical debt/Security risk", "mitigation": "Proper standard to resolve" }
+  ]
+}`;
+
+    const strategy = await generateGeminiJson(buildSystemPrompt(), analysisPrompt);
+    const theme = strategy.theme || "Technology";
+
+    // ─── STAGE 2: Batch Generation of 42 Sections ───
+    // Batch 1: Intro & Business
+    const batch1Prompt = `Generate proposal sections for: coverPage, confidentialPage, executiveSummary, businessUnderstanding, currentChallenges, painPoints, businessObjectives, proposedSolution, whyThisSolution.
+Client: ${clientName}, Project: ${projectName}, Theme: ${theme}.
+Strategy context: ${JSON.stringify(strategy)}
+Return JSON with the keys matching the section name. Each section must be an object with a "type" (one of: rich-text, grid-cards, table, bullet-list, timeline, diagram-spec) and its data fields.
+- coverPage: type "cover", fields: title, subtitle, client, date
+- confidentialPage: type "rich-text", content
+- executiveSummary: type "rich-text", content
+- businessUnderstanding: type "rich-text", content
+- currentChallenges: type "bullet-list", items
+- painPoints: type "grid-cards", cards (title, desc, icon)
+- businessObjectives: type "bullet-list", items
+- proposedSolution: type "rich-text", content
+- whyThisSolution: type "grid-cards", cards (title, desc, icon)`;
+
+    // Batch 2: Technical Blueprint
+    const batch2Prompt = `Generate proposal sections for: systemOverview, architectureDiagram, userFlow, technologyStack, projectModules, features, functionalRequirements, nonFunctionalRequirements, databaseDesign, apiArchitecture.
+Client: ${clientName}, Project: ${projectName}, Theme: ${theme}.
+Strategy context: ${JSON.stringify(strategy)}
+Return JSON keys matching section names. 
+- systemOverview: type "rich-text", content
+- architectureDiagram: type "diagram-spec", format "architecture", data (array of layer objects: key, label, color, icon, text)
+- userFlow: type "diagram-spec", format "userflow", data (array of step objects: step, label, desc)
+- technologyStack: type "table", headers ["Layer", "Technology", "Description"], rows (array of arrays)
+- projectModules: type "grid-cards", cards (title, desc, icon)
+- features: type "grid-cards", cards (title, desc, icon)
+- functionalRequirements: type "bullet-list", items
+- nonFunctionalRequirements: type "bullet-list", items
+- databaseDesign: type "table", headers ["Table Name", "Primary Key", "Description"], rows
+- apiArchitecture: type "table", headers ["Endpoint", "Method", "Purpose"], rows`;
+
+    // Batch 3: Delivery & Operations
+    const batch3Prompt = `Generate proposal sections for: security, aiIntegration, thirdPartyIntegrations, developmentMethodology, sprintPlanning, timeline, milestones, teamStructure, testingStrategy, deployment, hosting, maintenance, support, training.
+Client: ${clientName}, Project: ${projectName}, Theme: ${theme}.
+Strategy context: ${JSON.stringify(strategy)}
+Return JSON keys matching section names.
+- security: type "rich-text", content
+- aiIntegration: type "rich-text", content
+- thirdPartyIntegrations: type "table", headers ["Service Name", "Type", "Integration Purpose"], rows
+- developmentMethodology: type "rich-text", content
+- sprintPlanning: type "table", headers ["Sprint", "Duration", "Core Focus"], rows
+- timeline: type "timeline", items (phase, duration, deliverables)
+- milestones: type "table", headers ["Milestone", "Target Week", "Sign-Off Criteria"], rows
+- teamStructure: type "grid-cards", cards (title, desc, icon)
+- testingStrategy: type "rich-text", content
+- deployment: type "rich-text", content
+- hosting: type "rich-text", content
+- maintenance: type "rich-text", content
+- support: type "rich-text", content
+- training: type "rich-text", content`;
+
+    // Batch 4: Financials & Agreement
+    const batch4Prompt = `Generate proposal sections for: costEstimation, paymentMilestones, futureEnhancements, riskAnalysis, termsConditions, acceptanceCriteria, warranty, thankYou, signaturePage.
+Client: ${clientName}, Project: ${projectName}, Theme: ${theme}.
+Strategy context: ${JSON.stringify(strategy)}
+Return JSON keys matching section names.
+- costEstimation: type "table", headers ["Phase/Item", "Description", "Estimated Cost"], rows
+- paymentMilestones: type "table", headers ["Milestone", "Percentage", "Trigger Event"], rows
+- futureEnhancements: type "bullet-list", items
+- riskAnalysis: type "table", headers ["Risk Event", "Impact Level", "Mitigation Strategy"], rows
+- termsConditions: type "rich-text", content
+- acceptanceCriteria: type "bullet-list", items
+- warranty: type "rich-text", content
+- thankYou: type "rich-text", content
+- signaturePage: type "rich-text", content`;
+
+    const [batch1, batch2, batch3, batch4] = await Promise.all([
+      generateGeminiJson(buildSystemPrompt(), batch1Prompt),
+      generateGeminiJson(buildSystemPrompt(), batch2Prompt),
+      generateGeminiJson(buildSystemPrompt(), batch3Prompt),
+      generateGeminiJson(buildSystemPrompt(), batch4Prompt)
+    ]);
+
+    // Compile into final 42 sections
+    const compiledSections = {
+      ...batch1,
+      ...batch2,
+      ...batch3,
+      ...batch4
+    };
+
+    res.json(compiledSections);
+  } catch (err: any) {
+    req.log.error({ err }, "Failed to generate full proposal");
+    res.status(500).json({
+      error: "AI content generation failed",
+      details: err?.message || String(err),
+    });
+  }
+});
 
 router.post("/generate-content", async (req, res) => {
   const parsed = GenerateProposalContentBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request body" });
+    res.status(400).json({ error: "Invalid request body" });
+    return;
   }
 
   const {
@@ -672,85 +267,30 @@ router.post("/generate-content", async (req, res) => {
     contactDetails,
   } = parsed.data;
 
-  const sectionPrompts = buildSectionPrompts(
-    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails
-  );
+  const singleSectionPrompt = `Generate a single structured proposal section for "${section}".
+Project Type: ${projectType}
+Client Industry: ${clientIndustry}
+Client Name: ${clientName}
+Project Name: ${projectName}
+Budget: ${budgetRange || "Not specified"}
+Context: ${additionalContext || "None"}
 
-  const prompt =
-    sectionPrompts[section] ||
-    `Write a highly detailed, comprehensive ${section} section for a ${projectType} proposal for ${clientName} in the ${clientIndustry} industry. Project: ${projectName}. Use markdown formatting with headings, subheadings, bullet points and tables. Minimum 400 words.`;
+You MUST return a JSON object with keys "type" (one of: rich-text, grid-cards, table, bullet-list, timeline, diagram-spec) and its respective data fields matching that section type.`;
 
   try {
-    const content = await generateGeminiContent(buildSystemPrompt(contactDetails), prompt);
-    res.json({ content });
+    const content = await generateGeminiJson(buildSystemPrompt(), singleSectionPrompt);
+    res.json({ content: JSON.stringify(content) });
   } catch (err: any) {
     req.log.error({ err }, "Failed to generate content");
     res.status(500).json({ error: "AI content generation failed", details: err?.message });
   }
 });
 
-router.post("/generate-full-proposal", async (req, res) => {
-  const parsed = GenerateFullProposalBody.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request body" });
-  }
-
-  const { projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails } =
-    parsed.data;
-
-  const sectionPrompts = buildSectionPrompts(
-    projectType, clientIndustry, clientName, projectName, budgetRange, additionalContext, contactDetails
-  );
-
-  try {
-    const generateSection = async (
-      sectionName: string,
-      prompt: string
-    ): Promise<string> => {
-      try {
-        return await generateGeminiContent(buildSystemPrompt(contactDetails), prompt);
-      } catch (sectionErr: any) {
-        req.log.error({ sectionErr, sectionName }, "Failed to generate section");
-        return `Failed to generate this section. Error: ${sectionErr.message || sectionErr}. Please try generating this section individually using the AI button.`;
-      }
-    };
-
-    const executiveSummary = await generateSection("Executive Summary", sectionPrompts.executiveSummary);
-    const aboutCompany = await generateSection("About Company", sectionPrompts.aboutCompany);
-    const projectOverview = await generateSection("Project Overview", sectionPrompts.projectOverview);
-    const features = await generateSection("Features", sectionPrompts.features);
-    const technologyStack = await generateSection("Technology Stack", sectionPrompts.technologyStack);
-    const pricing = await generateSection("Pricing", sectionPrompts.pricing);
-    const digitalMarketing = await generateSection("Digital Marketing", sectionPrompts.digitalMarketing);
-    const addOns = await generateSection("Add-Ons", sectionPrompts.addOns);
-    const legalTerms = await generateSection("Legal Terms", sectionPrompts.legalTerms);
-    const acceptanceSection = await generateSection("Acceptance", sectionPrompts.acceptanceSection);
-
-    res.json({
-      executiveSummary,
-      aboutCompany,
-      projectOverview,
-      features,
-      technologyStack,
-      pricing,
-      digitalMarketing,
-      addOns,
-      legalTerms,
-      acceptanceSection,
-    });
-  } catch (err: any) {
-    req.log.error({ err }, "Failed to generate full proposal");
-    res.status(500).json({
-      error: "AI content generation failed",
-      details: err?.message || String(err),
-    });
-  }
-});
-
 router.post("/rewrite", async (req, res) => {
   const parsed = RewriteContentBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request body" });
+    res.status(400).json({ error: "Invalid request body" });
+    return;
   }
 
   const { content, tone, section } = parsed.data;
@@ -770,7 +310,7 @@ router.post("/rewrite", async (req, res) => {
 
   try {
     const prompt = `${toneInstruction}\n\nSection: ${section}\n\nOriginal content:\n${content}`;
-    const rewritten = await generateGeminiContent(buildSystemPrompt(), prompt);
+    const rewritten = await generateGeminiText(buildSystemPrompt(), prompt);
     res.json({ content: rewritten });
   } catch (err) {
     req.log.error({ err }, "Failed to rewrite content");
@@ -781,7 +321,8 @@ router.post("/rewrite", async (req, res) => {
 router.post("/upload-logo", async (req, res) => {
   const parsed = UploadLogoBody.safeParse(req.body);
   if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request body" });
+    res.status(400).json({ error: "Invalid request body" });
+    return;
   }
 
   const { base64Data, mimeType } = parsed.data;
@@ -813,7 +354,8 @@ router.post("/upload-logo", async (req, res) => {
       }
 
       const result = await apiResponse.json() as { url: string };
-      return res.json({ url: result.url });
+      res.json({ url: result.url });
+      return;
     } catch (err) {
       req.log.error({ err }, "ImageKit upload failed, falling back to base64");
     }

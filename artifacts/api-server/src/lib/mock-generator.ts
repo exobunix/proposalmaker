@@ -23,10 +23,10 @@ export function generateMockFullProposal(
       type: "rich-text",
       content: `### Confidentiality Agreement & Proprietary Information Notice
 
-This document contains proprietary and confidential information of **TechVision Solutions** and **${clientName}**. 
-By accepting this proposal, the recipient agrees that they will not disclose, duplicate, or distribute any of the concepts, designs, pricing, or strategic blueprints outlined herein to any third parties without prior written consent from TechVision Solutions.
+This document contains proprietary and confidential information of **${contactDetails || "TechVision Solutions"}** and **${clientName}**. 
+By accepting this proposal, the recipient agrees that they will not disclose, duplicate, or distribute any of the concepts, designs, pricing, or strategic blueprints outlined herein to any third parties without prior written consent from ${contactDetails || "TechVision Solutions"}.
 
-All technical diagrams, user flows, database structures, and cost estimations remain the intellectual property of TechVision Solutions until a formal contract is executed and payment is received.`
+All technical diagrams, user flows, database structures, and cost estimations remain the intellectual property of ${contactDetails || "TechVision Solutions"} until a formal contract is executed and payment is received.`
     },
     executiveSummary: {
       type: "rich-text",
@@ -368,7 +368,7 @@ We recommend hosting the platform on **Google Cloud Platform (GCP)** or **Render
       type: "rich-text",
       content: `### Post-Launch Maintenance Agreement
 
-Following deployment, TechVision Solutions provides comprehensive maintenance:
+Following deployment, ${contactDetails || "TechVision Solutions"} provides comprehensive maintenance:
 - **Server Health Checking**: Automated uptime monitors sending instant alert notifications.
 - **Minor Bug Fixes**: Immediate patching of visual alignment, typos, and minor data issues.
 - **Software Dependencies**: Periodic audits of Node modules to address security deprecations.`
@@ -435,7 +435,7 @@ To ensure your team can operate the system efficiently, we provide:
 
 1. **Validity**: This proposal is valid for 30 days from the date of issue.
 2. **Scope Changes**: Any requirements requested outside this specification will be evaluated as separate change requests.
-3. **Client Delay**: TechVision Solutions is not responsible for timeline delays resulting from slow feedback or asset delivery.`
+3. **Client Delay**: ${contactDetails || "TechVision Solutions"} is not responsible for timeline delays resulting from slow feedback or asset delivery.`
     },
     acceptanceCriteria: {
       type: "bullet-list",
@@ -451,11 +451,11 @@ To ensure your team can operate the system efficiently, we provide:
 
 We provide a **90-day post-launch warranty**. During this period, all bug fixes, security patches, and database adjustments required to meet the original specifications are executed free of charge.
 
-TechVision Solutions' total liability under this project is limited to the fees paid for services.`
+${contactDetails || "TechVision Solutions"}'s total liability under this project is limited to the fees paid for services.`
     },
     thankYou: {
       type: "rich-text",
-      content: `### Thank You for Choosing TechVision Solutions
+      content: `### Thank You for Choosing ${contactDetails || "TechVision Solutions"}
 
 We are excited about the opportunity to partner with **${clientName}**. Our team is fully committed to delivering a world-class, secure digital product that achieves all business objectives.
 
@@ -468,7 +468,7 @@ For any questions, please reach out to **hello@techvisionsolutions.com**.`
 By signing below, the parties agree to the terms, timelines, and budgets outlined in this business proposal:
 
 - **For ${clientName}**: __________________________  Date: ____________
-- **For TechVision Solutions**: _________________  Date: ____________`
+- **For ${contactDetails || "TechVision Solutions"}**: _________________  Date: ____________`
     }
   };
 }

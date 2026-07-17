@@ -102,9 +102,11 @@ async function generateGeminiText(systemPrompt: string, prompt: string): Promise
 
 router.use(requireAuth);
 
-function buildSystemPrompt(): string {
-  return `You are an expert senior business proposal writer and enterprise digital architect.
-Generate consulting-grade proposal content in structured JSON format. Avoid placeholder text or generic summaries. All content must be fully fleshed out, specific to the client's business challenge, and highly professional.`;
+function buildSystemPrompt(contactDetails?: string): string {
+  const companyName = contactDetails || "TechVision Solutions";
+  return `You are an expert senior business proposal writer and enterprise digital architect representing the company "${companyName}".
+Generate consulting-grade proposal content in structured JSON format. Avoid placeholder text or generic summaries. All content must be fully fleshed out, specific to the client's business challenge, and highly professional.
+Whenever you refer to the company preparing this proposal, you MUST use "${companyName}" and NEVER use "TechVision Solutions" or other placeholder names.`;
 }
 
 // ─── AI Generation Pipeline ──────────────────────────────────────────────────
@@ -155,7 +157,7 @@ You MUST return a JSON object in this exact format:
   ]
 }`;
 
-    const strategy = await generateGeminiJson(buildSystemPrompt(), analysisPrompt);
+    const strategy = await generateGeminiJson(buildSystemPrompt(contactDetails), analysisPrompt);
     const theme = strategy.theme || "Technology";
 
     // ─── STAGE 2: Batch Generation of 42 Sections ───
@@ -226,10 +228,10 @@ Return JSON keys matching section names.
 - signaturePage: type "rich-text", content`;
 
     const [batch1, batch2, batch3, batch4] = await Promise.all([
-      generateGeminiJson(buildSystemPrompt(), batch1Prompt),
-      generateGeminiJson(buildSystemPrompt(), batch2Prompt),
-      generateGeminiJson(buildSystemPrompt(), batch3Prompt),
-      generateGeminiJson(buildSystemPrompt(), batch4Prompt)
+      generateGeminiJson(buildSystemPrompt(contactDetails), batch1Prompt),
+      generateGeminiJson(buildSystemPrompt(contactDetails), batch2Prompt),
+      generateGeminiJson(buildSystemPrompt(contactDetails), batch3Prompt),
+      generateGeminiJson(buildSystemPrompt(contactDetails), batch4Prompt)
     ]);
 
     // Compile into final 42 sections
@@ -292,7 +294,7 @@ Context: ${additionalContext || "None"}
 You MUST return a JSON object with keys "type" (one of: rich-text, grid-cards, table, bullet-list, timeline, diagram-spec) and its respective data fields matching that section type.`;
 
   try {
-    const content = await generateGeminiJson(buildSystemPrompt(), singleSectionPrompt);
+    const content = await generateGeminiJson(buildSystemPrompt(contactDetails), singleSectionPrompt);
     res.json({ content: JSON.stringify(content) });
   } catch (err: any) {
     req.log.error({ err }, "Failed to generate content using AI, falling back to mock generator");

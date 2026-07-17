@@ -93,7 +93,8 @@ export const CoverPage: React.FC<CoverPageProps> = ({
             fontSize: "3.5rem",
             lineHeight: 1.1,
             marginBottom: "16px",
-            textShadow: "0 4px 12px rgba(0,0,0,0.3)"
+            textShadow: "0 4px 12px rgba(0,0,0,0.3)",
+            color: theme.textLight || "#FFFFFF"
           }}
         >
           {projectName}

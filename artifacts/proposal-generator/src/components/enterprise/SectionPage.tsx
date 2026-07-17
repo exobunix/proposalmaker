@@ -55,7 +55,7 @@ export const SectionPage: React.FC<SectionPageProps> = ({
         }}
       >
         <span style={{ fontSize: "0.68rem", fontWeight: 700, color: "#64748b", letterSpacing: "1px", textTransform: "uppercase" }}>
-          TechVision Framework
+          {(authorName || "TechVision").toUpperCase()} PROPOSAL
         </span>
         <span style={{ fontSize: "0.65rem", color: "#94a3b8", letterSpacing: "1px" }}>
           CONFIDENTIAL

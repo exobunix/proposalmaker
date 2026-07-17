@@ -493,15 +493,8 @@ export default function ProposalPreview() {
   const enabledSections = (proposal.enabledSections || {}) as Record<string, boolean>;
 
   const sectionOrder = [
-    "coverPage", "confidentialPage", "executiveSummary", "businessUnderstanding", "currentChallenges",
-    "painPoints", "businessObjectives", "proposedSolution", "whyThisSolution", "systemOverview",
-    "architectureDiagram", "userFlow", "technologyStack", "projectModules", "features",
-    "functionalRequirements", "nonFunctionalRequirements", "databaseDesign", "apiArchitecture", "security",
-    "aiIntegration", "thirdPartyIntegrations", "developmentMethodology", "sprintPlanning", "timeline",
-    "milestones", "teamStructure", "testingStrategy", "deployment", "hosting",
-    "maintenance", "support", "training", "costEstimation", "paymentMilestones",
-    "futureEnhancements", "riskAnalysis", "termsConditions", "acceptanceCriteria", "warranty",
-    "thankYou", "signaturePage"
+    "executiveSummary", "proposedSolution", "systemOverview", "features", "technologyStack",
+    "costEstimation", "timeline", "riskAnalysis"
   ];
 
   const sectionTitles: Record<string, string> = {
@@ -776,7 +769,7 @@ export default function ProposalPreview() {
           {/* Company Highlights Banner */}
           <div style={{ background: themeColors.coverBg, borderRadius: "16px", padding: "36px", color: "white" }}>
             <div style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.25rem", fontWeight: 800, marginBottom: "28px" }}>
-              Why TechVision Solutions?
+              Why {proposal.contactDetails || "TechVision Solutions"}?
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
               {[
@@ -995,9 +988,9 @@ export default function ProposalPreview() {
               {/* Contact row */}
               <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "32px", display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "20px" }}>
                 {[
-                  { icon: "📧", label: "Email", val: "hello@techvisionsolutions.com" },
-                  { icon: "📞", label: "Phone", val: "+1 (800) 555-0100" },
-                  { icon: "🌐", label: "Website", val: "www.techvisionsolutions.com" }
+                  { icon: "📧", label: "Contact", val: proposal.contactDetails || "hello@techvisionsolutions.com" },
+                  { icon: "📞", label: "Support", val: "+1 (800) 555-0100" },
+                  { icon: "🌐", label: "Website", val: window.location.host }
                 ].map((c, i) => (
                   <div key={i} style={{ textAlign: "center" }}>
                     <div style={{ fontSize: "1.4rem", marginBottom: "6px" }}>{c.icon}</div>

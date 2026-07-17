@@ -1,5 +1,6 @@
 import puppeteer from "puppeteer";
 import { logger } from "./logger";
+import { Proposal } from "@workspace/db";
 
 export interface GeneratePdfOptions {
   proposalId: number;
@@ -13,7 +14,17 @@ export async function generateProposalPdf(options: GeneratePdfOptions): Promise<
   const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
   const url = `${frontendUrl}/proposals/${proposalId}/preview?token=${token}&print=true&format=${format}&theme=${theme}`;
 
-  logger.info({ url, format, theme }, "Generating PDF for proposal");
+  let authorName = "TechVision Solutions";
+  try {
+    const proposal = await Proposal.findById(proposalId).lean();
+    if (proposal && proposal.contactDetails) {
+      authorName = proposal.contactDetails;
+    }
+  } catch (err) {
+    logger.warn({ err, proposalId }, "Failed to fetch proposal for PDF author name");
+  }
+
+  logger.info({ url, format, theme, authorName }, "Generating PDF for proposal");
 
   const browser = await puppeteer.launch({
     headless: true,
@@ -54,13 +65,13 @@ export async function generateProposalPdf(options: GeneratePdfOptions): Promise<
       displayHeaderFooter: true,
       headerTemplate: `
         <div style="font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 8px; color: #94a3b8; width: 100%; padding: 0 45px; display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 5px; -webkit-print-color-adjust: exact;">
-          <span>TechVision Solutions Proposal</span>
+          <span>${authorName} Proposal</span>
           <span>Confidential</span>
         </div>
       `,
       footerTemplate: `
         <div style="font-family: 'Inter', 'Segoe UI', sans-serif; font-size: 8px; color: #94a3b8; width: 100%; padding: 0 45px; display: flex; justify-content: space-between; border-top: 1px solid #f1f5f9; padding-top: 5px; -webkit-print-color-adjust: exact;">
-          <span>TechVision Solutions — Confidential & Proprietary</span>
+          <span>${authorName} — Confidential & Proprietary</span>
           <span>Page <span class="pageNumber"></span> of <span class="totalPages"></span></span>
         </div>
       `,

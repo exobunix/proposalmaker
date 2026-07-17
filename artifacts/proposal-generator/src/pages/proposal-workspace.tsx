@@ -274,6 +274,32 @@ export default function ProposalWorkspace() {
   const currentSlideIndex = sectionOrder.indexOf(activeSectionKey) + 1;
   const activeContent = sections[activeSectionKey];
 
+  if (isNew) {
+    return (
+      <div className="h-full w-full overflow-hidden bg-[#0a0b0d] text-slate-100 flex items-center justify-center p-6 font-sans">
+        <div className="max-w-xl w-full bg-[#0c0e12] border border-[#1e232b] rounded-2xl p-8 shadow-2xl">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center shadow-md">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Create New Proposal</h2>
+              <p className="text-xs text-slate-400">Fill in the initial details to instantiate your AI outline.</p>
+            </div>
+          </div>
+          <ScrollArea className="max-h-[70vh] pr-2">
+            <ProposalForm 
+              proposal={undefined} 
+              isNew={true} 
+              selectedTheme={selectedTheme} 
+              onThemeChange={(t) => setSelectedTheme(t)} 
+            />
+          </ScrollArea>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full w-full overflow-hidden bg-[#0a0b0d] text-slate-100 flex flex-col font-sans">
       

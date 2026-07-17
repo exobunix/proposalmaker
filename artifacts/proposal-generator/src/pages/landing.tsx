@@ -3,7 +3,6 @@ import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, FileText, CheckCircle2, ChevronRight, Zap, Target, Star, Shield } from "lucide-react";
-import { motion } from "framer-motion";
 
 export default function Landing() {
   const { user } = useAuth();
@@ -76,11 +75,8 @@ export default function Landing() {
       </header>
 
       <main className="flex-1 w-full flex flex-col items-center">
-        <motion.section 
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          className="px-6 pt-20 pb-16 text-center max-w-5xl mx-auto flex flex-col items-center space-y-6 z-10"
+        <section 
+          className="px-6 pt-20 pb-16 text-center max-w-5xl mx-auto flex flex-col items-center space-y-6 z-10 animate-fade-in-up"
         >
           <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-500 text-xs font-semibold uppercase tracking-wider mb-2">
             <Zap className="h-3.5 w-3.5" /> Generates proposals in minutes
@@ -105,10 +101,7 @@ export default function Landing() {
           </p>
 
           {/* Centered Dashboard Mockup Image */}
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.95, y: 40 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.8 }}
+          <div 
             className="w-full max-w-4xl mt-12 border border-border/60 rounded-2xl overflow-hidden shadow-2xl bg-card/50 backdrop-blur-md p-2 group hover:border-amber-500/30 transition-all duration-500"
           >
             <img 
@@ -116,8 +109,8 @@ export default function Landing() {
               alt="AI Proposal Maker Dashboard Mockup" 
               className="rounded-xl w-full object-cover transition-transform duration-700 group-hover:scale-[1.01]" 
             />
-          </motion.div>
-        </motion.section>
+          </div>
+        </section>
 
         {/* Features Grid */}
         <section className="w-full max-w-6xl mx-auto px-6 py-12">

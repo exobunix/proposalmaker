@@ -276,25 +276,16 @@ export default function ProposalWorkspace() {
 
   if (isNew) {
     return (
-      <div className="h-full w-full overflow-hidden bg-[#0a0b0d] text-slate-100 flex items-center justify-center p-6 font-sans">
-        <div className="max-w-xl w-full bg-[#0c0e12] border border-[#1e232b] rounded-2xl p-8 shadow-2xl">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-amber-600 flex items-center justify-center shadow-md">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-white">Create New Proposal</h2>
-              <p className="text-xs text-slate-400">Fill in the initial details to instantiate your AI outline.</p>
-            </div>
-          </div>
-          <ScrollArea className="max-h-[70vh] pr-2">
+      <div className="h-full w-full overflow-hidden bg-[#fafbfe] flex items-center justify-center p-6 font-sans">
+        <div className="max-w-xl w-full bg-white border border-[#e2e8f0] rounded-2xl shadow-xl flex flex-col max-h-[85vh] overflow-hidden text-slate-800">
+          <div className="flex-1 overflow-y-auto pr-1">
             <ProposalForm 
               proposal={undefined} 
               isNew={true} 
               selectedTheme={selectedTheme} 
               onThemeChange={(t) => setSelectedTheme(t)} 
             />
-          </ScrollArea>
+          </div>
         </div>
       </div>
     );
@@ -332,21 +323,21 @@ export default function ProposalWorkspace() {
                     Edit Details Form
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-xl bg-[#0c0e12] border-[#1e232b] text-slate-200">
+                <DialogContent className="max-w-xl bg-white border-slate-200 text-slate-800">
                   <DialogHeader>
-                    <DialogTitle className="text-white">Edit Proposal Details</DialogTitle>
-                    <DialogDescription className="text-slate-400 text-xs">
+                    <DialogTitle className="text-slate-900 font-bold">Edit Proposal Details</DialogTitle>
+                    <DialogDescription className="text-slate-500 text-xs">
                       Update metadata, client specifications, contact details or industry styling tags.
                     </DialogDescription>
                   </DialogHeader>
-                  <ScrollArea className="max-h-[70vh] pr-4">
+                  <div className="max-h-[70vh] overflow-y-auto pr-2">
                     <ProposalForm 
                       proposal={proposal} 
                       isNew={false} 
                       selectedTheme={selectedTheme} 
                       onThemeChange={(t) => setSelectedTheme(t)} 
                     />
-                  </ScrollArea>
+                  </div>
                 </DialogContent>
               </Dialog>
 
